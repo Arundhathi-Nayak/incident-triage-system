@@ -20,8 +20,8 @@ class TicketInput(BaseModel):
 class ClassificationResult(BaseModel):
     category: str
     severity: str
-    assigned_team: str
-    ai_summary: str
+    assignedteam: str
+    summary: str
 
 @app.post("/classify", response_model=ClassificationResult)
 def classify_ticket(ticket: TicketInput):

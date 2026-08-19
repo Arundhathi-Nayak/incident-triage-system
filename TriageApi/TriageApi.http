@@ -1,0 +1,6 @@
+@TriageApi_HostAddress = http://localhost:5155
+
+GET {{TriageApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

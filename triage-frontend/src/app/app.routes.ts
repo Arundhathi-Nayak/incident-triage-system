@@ -1,3 +1,7 @@
 import { Routes } from '@angular/router';
 
-export const routes: Routes = [];
+import { TicketForm } from './components/ticket-form/ticket-form';
+
+export const routes: Routes = [
+  { path: '', component: TicketForm }
+];

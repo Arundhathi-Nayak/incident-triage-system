@@ -1,0 +1,45 @@
+<div class="ticket-form-container">
+  <h2>Raise a ticket</h2>
+
+  <form (ngSubmit)="onSubmit()" #form="ngForm">
+    <div class="field">
+      <label for="title">Title</label>
+      <input
+        id="title"
+        type="text"
+        [(ngModel)]="formData.title"
+        name="title"
+        placeholder="Brief summary of the issue"
+        required />
+    </div>
+
+    <div class="field">
+      <label for="description">Description</label>
+      <textarea
+        id="description"
+        [(ngModel)]="formData.description"
+        name="description"
+        rows="5"
+        placeholder="What's happening, what have you tried, what's the impact?"
+        required></textarea>
+    </div>
+
+    <div class="field">
+      <label for="submitter">Your email</label>
+      <input
+        id="submitter"
+        type="email"
+        [(ngModel)]="formData.submitter"
+        name="submitter"
+        placeholder="you@company.com"
+        required />
+    </div>
+
+    <button type="submit" [disabled]="isSubmitting()">
+      {{ isSubmitting() ? 'Submitting...' : 'Submit ticket' }}
+    </button>
+
+    <p class="success" *ngIf="successMessage">{{ successMessage() }}</p>
+    <p class="error" *ngIf="errorMessage">{{ errorMessage() }}</p>
+  </form>
+</div>

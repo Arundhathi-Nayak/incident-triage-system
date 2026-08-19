@@ -21,6 +21,11 @@ builder.Services.AddCors(options =>
      .AllowAnyMethod()
      ));
 
+builder.Services.AddHttpClient("ClassificationService", client =>
+{
+    client.BaseAddress = new Uri("http://localhost:8000/");
+});
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

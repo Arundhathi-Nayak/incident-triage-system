@@ -50,5 +50,42 @@
       <label>Resolution</label>
       <p>{{ t.resolution }}</p>
     </div>
+
+    <div class="comments-section">
+      <h3>Comments</h3>
+
+      <p class="error" *ngIf="commentError()">{{ commentError() }}</p>
+      <p *ngIf="isLoadingComments()">Loading comments...</p>
+
+      <div class="comment-list" *ngIf="!isLoadingComments()">
+        <div class="comment" *ngFor="let c of comments()">
+          <div class="comment-header">
+            <span class="comment-author">{{ c.author }}</span>
+            <span class="comment-time">{{ c.createdAt | date:'short' }}</span>
+          </div>
+          <p class="comment-text">{{ c.text }}</p>
+        </div>
+        <p *ngIf="comments().length === 0" class="no-comments">No comments yet.</p>
+      </div>
+
+      <form (ngSubmit)="postComment()" class="comment-form">
+        <input
+          type="text"
+          [(ngModel)]="newComment.author"
+          name="author"
+          placeholder="Your name"
+          required />
+        <textarea
+          [(ngModel)]="newComment.text"
+          name="text"
+          rows="3"
+          placeholder="Add a comment..."
+          required></textarea>
+        <button type="submit" [disabled]="isPostingComment()">
+          {{ isPostingComment() ? 'Posting...' : 'Add comment' }}
+        </button>
+      </form>
+    </div>
+
   </div>
 </div>

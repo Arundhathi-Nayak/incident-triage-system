@@ -2,6 +2,7 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using TriageApi.Dto;
 using TriageApi.Models;
 
 [ApiController]
@@ -126,6 +127,25 @@ public class TicketsController : ControllerBase
         await _db.SaveChangesAsync();
 
         return (true, null);
+    }
+
+    [HttpPost("{incidentId}/resolve")]
+    public async Task<ActionResult<Ticket>> Resolve(string incidentId, ResolveTicketDto dto)
+    {
+        var ticket = await _db.Tickets.FirstOrDefaultAsync(t => t.IncidentId == incidentId);
+        if (ticket is null) return NotFound();
+
+        if (ticket.Status == "Resolved")
+            return BadRequest("This ticket is already resolved.");
+
+        ticket.Status = "Resolved";
+        ticket.ResolvedAt = DateTime.UtcNow;
+        ticket.RootCause = dto.RootCause;
+        ticket.Resolution = dto.Resolution;
+
+        await _db.SaveChangesAsync();
+
+        return Ok(ticket);
     }
 
 }

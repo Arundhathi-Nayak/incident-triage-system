@@ -14,5 +14,6 @@ public class Ticket
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? ResolvedAt { get; set; }
     public string? Resolution { get; set; }
+    public string? RootCause { get; set; }
     public string? Summary { get; set; }
 }

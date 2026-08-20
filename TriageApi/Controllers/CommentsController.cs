@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using TriageApi.Dto;
 using TriageApi.Models;
 
 namespace TriageApi.Controllers;
@@ -19,7 +20,7 @@ public class CommentsController : ControllerBase
 
         var comments = await _db.Comments
             .Where(c => c.IncidentId == incidentId)
-            .OrderBy(c => c.CreatedAt)
+            .OrderByDescending(c => c.CreatedAt)
             .ToListAsync();
 
         return comments;

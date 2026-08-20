@@ -46,6 +46,12 @@ export class TicketDetail implements OnInit {
     this.ticketService.getById(this.incidentId).subscribe({
       next: (ticket) => {
         this.ticket.set(ticket);
+       if (ticket.status === 'Resolved') {
+        this.resolveData = {
+          rootCause: ticket.rootCause ?? '',
+          resolution: ticket.resolution ?? ''
+        };
+      }
         this.isLoading.set(false);
       },
       error: (err) => {
@@ -102,5 +108,47 @@ export class TicketDetail implements OnInit {
     return 'status-' + status.toLowerCase().replace(' ', '-');
   }
 
+// ticket reolution 
 
+  isEditingResolution = signal(false);
+  resolveData = { rootCause: '', resolution: '' };
+  isResolving = signal(false);
+  resolveError = signal('');
+
+  startEditingResolution(): void {
+  this.isEditingResolution.set(true);
+  this.resolveError.set('');
+}
+
+  cancelEditingResolution(): void {
+  this.isEditingResolution.set(false);
+  this.resolveError.set('');
+  this.resolveData = { rootCause: '', resolution: '' };
+}
+
+submitResolution(): void {
+  if (!this.resolveData.rootCause.trim() || !this.resolveData.resolution.trim()) {
+    this.resolveError.set('Root cause and resolution are both required.');
+    return;
+  }
+
+this.isResolving.set(true);
+this.resolveError.set('');
+this.ticketService.resolve(this.incidentId, this.resolveData.rootCause, this.resolveData.resolution).subscribe({
+    next: (updatedTicket) => {
+      this.ticket.set(updatedTicket);
+      this.isEditingResolution.set(false);
+      this.isResolving.set(false);
+    },
+    error: (err) => {
+      this.resolveError.set('Failed to resolve ticket. It may already be resolved.');
+      this.isResolving.set(false);
+      console.error(err);
+    }
+  });
+}
+isResolutionFieldsDisabled(): boolean {
+  const t = this.ticket();
+  return !this.isEditingResolution() || t?.status === 'Resolved';
+}
 }

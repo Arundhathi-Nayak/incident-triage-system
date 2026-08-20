@@ -11,6 +11,7 @@ export interface Ticket {
   createdAt: string;
   resolvedAt: string | null;
   resolution: string | null;
+  rootCause: string | null;
   summary: string | null;
 }
 

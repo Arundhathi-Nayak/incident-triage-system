@@ -31,4 +31,11 @@ export class TicketService {
     delete(incidentId:string):Observable<void>{
         return this.http.delete<void>(`${this.baseUrl}/${incidentId}`);
     }
+
+    resolve(incidentId: string, rootCause: string, resolution: string): Observable<Ticket> {
+      return this.http.post<Ticket>(`${this.baseUrl}/${incidentId}/resolve`, {
+        rootCause,
+        resolution
+    });
+}
 }

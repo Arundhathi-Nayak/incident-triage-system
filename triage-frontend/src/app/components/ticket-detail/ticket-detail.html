@@ -46,9 +46,52 @@
       <p>{{ t.summary }}</p>
     </div>
 
-    <div class="resolution-box" *ngIf="t.resolution">
-      <label>Resolution</label>
-      <p>{{ t.resolution }}</p>
+      <div class="resolution-section">
+      <div class="resolution-header">
+        <h3>Root cause &amp; resolution</h3>
+        <span *ngIf="t.status === 'Resolved'" class="resolved-tag">
+          ✓ Resolved {{ t.resolvedAt | date:'medium' }}
+        </span>
+        <button
+          *ngIf="t.status !== 'Resolved' && !isEditingResolution()"
+          class="resolve-btn"
+          (click)="startEditingResolution()">
+          Resolve
+        </button>
+      </div>
+
+      <div class="field">
+        <label for="rootCause">Root cause</label>
+        <textarea
+          id="rootCause"
+          [(ngModel)]="resolveData.rootCause"
+          name="rootCause"
+          rows="3"
+          [disabled]="isResolutionFieldsDisabled()"
+          placeholder="What actually caused this issue?"></textarea>
+      </div>
+
+      <div class="field">
+        <label for="resolution">Resolution</label>
+        <textarea
+          id="resolution"
+          [(ngModel)]="resolveData.resolution"
+          name="resolution"
+          rows="3"
+          [disabled]="isResolutionFieldsDisabled()"
+          placeholder="What was done to fix it?"></textarea>
+      </div>
+
+      <p class="error" *ngIf="resolveError()">{{ resolveError() }}</p>
+
+      <div class="resolution-actions" *ngIf="isEditingResolution()">
+        <button class="submit-resolve-btn" (click)="submitResolution()" [disabled]="isResolving()">
+          {{ isResolving() ? 'Submitting...' : 'Submit resolution' }}
+        </button>
+        <button class="cancel-btn" (click)="cancelEditingResolution()" [disabled]="isResolving()">
+          Cancel
+        </button>
+      </div>
     </div>
 
     <div class="comments-section">

@@ -16,19 +16,19 @@ export class TicketService {
         return this.http.get<Ticket[]>(this.baseUrl);
     }
 
-    getById(id:number):Observable<Ticket>{
-        return this.http.get<Ticket>(`${this.baseUrl}/${id}`);
+    getById(incidentId:string):Observable<Ticket>{
+        return this.http.get<Ticket>(`${this.baseUrl}/${incidentId}`);
     }
 
     create(ticket:CreateTicketRequest):Observable<Ticket>{
         return this.http.post<Ticket>(this.baseUrl,ticket);
     }
 
-    classify(id:number):Observable<Ticket>{
-        return this.http.post<Ticket>(`${this.baseUrl}/${id}/classify`,{});
+    classify(incidentId:string):Observable<Ticket>{
+        return this.http.post<Ticket>(`${this.baseUrl}/${incidentId}/classify`,{});
     }
 
-    delete(id:number):Observable<void>{
-        return this.http.delete<void>(`${this.baseUrl}/${id}`);
+    delete(incidentId:string):Observable<void>{
+        return this.http.delete<void>(`${this.baseUrl}/${incidentId}`);
     }
 }

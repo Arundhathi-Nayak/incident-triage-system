@@ -1,4 +1,5 @@
 <div class="ticket-form-container">
+   <a routerLink="/" class="back-link">← Back to dashboard</a>
   <h2>Raise a ticket</h2>
 
   <form (ngSubmit)="onSubmit()" #form="ngForm">
@@ -29,7 +30,7 @@
       <input
         id="submitter"
         type="email"
-        [(ngModel)]="formData.submitter"
+        [(ngModel)]="formData.createdBy"
         name="submitter"
         placeholder="you@company.com"
         required />

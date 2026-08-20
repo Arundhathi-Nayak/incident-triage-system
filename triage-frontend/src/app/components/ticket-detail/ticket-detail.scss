@@ -1,0 +1,91 @@
+.detail-container {
+  max-width: 700px;
+  margin: 2rem auto;
+  padding: 0 1.5rem;
+}
+
+.back-link {
+  display: inline-block;
+  margin-bottom: 1rem;
+  color: #2563eb;
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.ticket-card {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 1.5rem;
+}
+
+.ticket-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+
+  h2 { margin: 0; font-size: 1.3rem; }
+}
+
+.title {
+  margin: 0.5rem 0;
+}
+
+.description {
+  color: #444;
+  line-height: 1.5;
+}
+
+.meta-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  margin-top: 1.5rem;
+
+  .meta-item {
+    label {
+      display: block;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      color: #888;
+      margin-bottom: 0.2rem;
+    }
+  }
+}
+
+.summary-box, .resolution-box {
+  margin-top: 1.5rem;
+  padding: 0.75rem 1rem;
+  background: #f9fafb;
+  border-radius: 6px;
+
+  label {
+    display: block;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    color: #888;
+    margin-bottom: 0.3rem;
+  }
+
+  p { margin: 0; }
+}
+
+.badge {
+  padding: 0.2rem 0.6rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+
+  &.severity-p1 { background: #fee2e2; color: #dc2626; }
+  &.severity-p2 { background: #fef3c7; color: #d97706; }
+  &.severity-p3 { background: #dbeafe; color: #2563eb; }
+  &.severity-p4 { background: #f3f4f6; color: #6b7280; }
+
+  &.status-open { background: #dbeafe; color: #2563eb; }
+  &.status-in-progress { background: #fef3c7; color: #d97706; }
+  &.status-resolved { background: #dcfce7; color: #16a34a; }
+}
+
+.error {
+  color: #dc2626;
+}

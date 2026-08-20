@@ -1,0 +1,57 @@
+<div class="dashboard-container">
+  <div class="header">
+    <h2>Ticket dashboard</h2>
+    <a routerLink="/create" class="create-btn">+ Create ticket</a>
+  </div>
+
+  <div class="toolbar">
+    <input
+      type="text"
+      placeholder="Search by incident ID, title, submitter, category, team..."
+      [value]="searchTerm()"
+      (input)="onSearchChange($any($event.target).value)" />
+    <button (click)="loadTickets()" [disabled]="isLoading()">Refresh</button>
+  </div>
+
+  <p class="error" *ngIf="errorMessage()">{{ errorMessage() }}</p>
+  <p *ngIf="isLoading()">Loading tickets...</p>
+
+  <table *ngIf="!isLoading() && filteredTickets().length > 0">
+    <thead>
+      <tr>
+        <th>Incident</th>
+        <th>Title</th>
+        <th>Created by</th>
+        <th>Status</th>
+        <th>Category</th>
+        <th>Severity</th>
+        <th>Assigned team</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let ticket of filteredTickets()">
+        <td>{{ ticket.incidentId }}</td>
+        <td class="title-cell">{{ ticket.title }}</td>
+        <td>{{ ticket.createdBy }}</td>
+        <td><span class="badge" [ngClass]="statusClass(ticket.status)">{{ ticket.status }}</span></td>
+        <td>{{ ticket.category || '—' }}</td>
+        <td>
+          <span class="badge" [ngClass]="severityClass(ticket.severity)" *ngIf="ticket.severity">
+            {{ ticket.severity }}
+          </span>
+          <span *ngIf="!ticket.severity">—</span>
+        </td>
+        <td>{{ ticket.assignedTeam || '—' }}</td>
+        <td>
+          <a [routerLink]="['/tickets', ticket.incidentId]" class="view-link">View</a>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p *ngIf="!isLoading() && filteredTickets().length === 0 && tickets().length > 0">
+    No tickets match your search.
+  </p>
+  <p *ngIf="!isLoading() && tickets().length === 0">No tickets yet.</p>
+</div>

@@ -1,0 +1,54 @@
+<div class="detail-container">
+  <a routerLink="/" class="back-link">← Back to dashboard</a>
+
+  <p *ngIf="isLoading()">Loading ticket...</p>
+  <p class="error" *ngIf="errorMessage()">{{ errorMessage() }}</p>
+
+  <div *ngIf="ticket() as t" class="ticket-card">
+    <div class="ticket-header">
+      <h2>{{ t.incidentId }}</h2>
+      <span class="badge" [ngClass]="statusClass(t.status)">{{ t.status }}</span>
+    </div>
+
+    <h3 class="title">{{ t.title }}</h3>
+    <p class="description">{{ t.description }}</p>
+
+    <div class="meta-grid">
+      <div class="meta-item">
+        <label>Category</label>
+        <span>{{ t.category || '—' }}</span>
+      </div>
+      <div class="meta-item">
+        <label>Severity</label>
+        <span class="badge" [ngClass]="severityClass(t.severity)" *ngIf="t.severity">{{ t.severity }}</span>
+        <span *ngIf="!t.severity">—</span>
+      </div>
+      <div class="meta-item">
+        <label>Assigned team</label>
+        <span>{{ t.assignedTeam || '—' }}</span>
+      </div>
+      <div class="meta-item">
+        <label>Created by</label>
+        <span>{{ t.createdBy }}</span>
+      </div>
+      <div class="meta-item">
+        <label>Created at</label>
+        <span>{{ t.createdAt | date:'medium' }}</span>
+      </div>
+      <div class="meta-item" *ngIf="t.resolvedAt">
+        <label>Resolved at</label>
+        <span>{{ t.resolvedAt | date:'medium' }}</span>
+      </div>
+    </div>
+
+    <div class="summary-box" *ngIf="t.summary">
+      <label>Summary</label>
+      <p>{{ t.summary }}</p>
+    </div>
+
+    <div class="resolution-box" *ngIf="t.resolution">
+      <label>Resolution</label>
+      <p>{{ t.resolution }}</p>
+    </div>
+  </div>
+</div>

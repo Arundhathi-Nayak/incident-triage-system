@@ -17,7 +17,7 @@ export class TicketForm {
   formData:CreateTicketRequest={
     title:'',
     description:'',
-    submitter:''
+    createdBy:''
   };
 
   isSubmitting=signal(false);
@@ -27,7 +27,7 @@ export class TicketForm {
   constructor(private ticketService:TicketService,private router: Router){}
 
   onSubmit():void{
-    if(!this.formData.title.trim() || !this.formData.description.trim() ||!this.formData.submitter.trim()){
+    if(!this.formData.title.trim() || !this.formData.description.trim() ||!this.formData.createdBy.trim()){
       this.errorMessage.set("All fields are required.");
       return;
     }
@@ -35,14 +35,12 @@ export class TicketForm {
     this.errorMessage.set('');
     this.successMessage.set('');
 
-    this.ticketService.create(this.formData).pipe(
-      switchMap(createdTicket=>this.ticketService.classify(createdTicket.id))
-    )
+    this.ticketService.create(this.formData)
     .subscribe({
       next:(classifiedTicket)=>{
         this.isSubmitting.set(false);
-        this.successMessage.set(`Ticket #${classifiedTicket.id} created successfully.`);
-        this.formData={title:'',description:'',submitter:''};
+        this.successMessage.set(`Ticket ${classifiedTicket.incidentId} created successfully.`);
+        this.formData={title:'',description:'',createdBy:''};
       },
       error:(err)=>{
         this.isSubmitting.set(false);

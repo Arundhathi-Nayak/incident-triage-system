@@ -1,17 +1,21 @@
 export interface Ticket {
-    id:number;
-    title:string,
-    description:string,
-    submitter:string,
-    category:string|null;
-    severity:string|null,
-    assignedTeam:string|null;
-    summary:string|null;
-    createdAt:string;
+   id: number;
+  incidentId: string;
+  title: string;
+  description: string;
+  category: string | null;
+  severity: string | null;
+  status: string;
+  assignedTeam: string | null;
+  createdBy: string;
+  createdAt: string;
+  resolvedAt: string | null;
+  resolution: string | null;
+  summary: string | null;
 }
 
 export interface CreateTicketRequest{
     title:string;
     description:string;
-    submitter:string;
+    createdBy:string;
 }

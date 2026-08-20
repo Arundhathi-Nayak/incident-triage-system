@@ -58,6 +58,15 @@ public class TicketsController : ControllerBase
         var existing = await _db.Tickets.FirstOrDefaultAsync(t => t.IncidentId == incidentId);
         if (existing is null) return NotFound();
 
+        if (!TicketOptions.Categories.Contains(updated.Category))
+            return BadRequest($"Invalid category. Must be one of: {string.Join(", ", TicketOptions.Categories)}");
+        if (!TicketOptions.Severities.Contains(updated.Severity))
+            return BadRequest($"Invalid severity. Must be one of: {string.Join(", ", TicketOptions.Severities)}");
+        if (!TicketOptions.Statuses.Contains(updated.Status))
+            return BadRequest($"Invalid status. Must be one of: {string.Join(", ", TicketOptions.Statuses)}");
+        if (!TicketOptions.AssignedTeams.Contains(updated.AssignedTeam))
+            return BadRequest($"Invalid team. Must be one of: {string.Join(", ", TicketOptions.AssignedTeams)}");
+
         existing.Title = updated.Title;
         existing.Description = updated.Description;
         existing.Category = updated.Category;
@@ -65,6 +74,7 @@ public class TicketsController : ControllerBase
         existing.Status = updated.Status;
         existing.AssignedTeam = updated.AssignedTeam;
         existing.ResolvedAt = updated.ResolvedAt;
+        existing.RootCauseCategory = updated.RootCauseCategory;
         existing.Resolution = updated.Resolution;
         existing.Summary = updated.Summary;
 
@@ -140,6 +150,7 @@ public class TicketsController : ControllerBase
 
         ticket.Status = "Resolved";
         ticket.ResolvedAt = DateTime.UtcNow;
+        ticket.RootCauseCategory = dto.RootCauseCategory;
         ticket.RootCause = dto.RootCause;
         ticket.Resolution = dto.Resolution;
 

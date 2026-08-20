@@ -82,7 +82,7 @@ public class TicketsController : ControllerBase
     }
     // [HttpPost("{id}/classify")]
     // public async Task<ActionResult<Ticket>> Classify(int id)
-    public async Task<(bool Success, string? ErrorMessage)> TryClassifyAsync(Ticket ticket)
+    private async Task<(bool Success, string? ErrorMessage)> TryClassifyAsync(Ticket ticket)
     {
         var client = _httpClientFactory.CreateClient("ClassificationService");
 

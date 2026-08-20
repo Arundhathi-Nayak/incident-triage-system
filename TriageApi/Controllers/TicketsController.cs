@@ -20,10 +20,10 @@ public class TicketsController : ControllerBase
     public async Task<ActionResult<List<Ticket>>> GetAll() =>
      await _db.Tickets.OrderByDescending(t => t.CreatedAt).ToListAsync();
 
-    [HttpGet("{id}")]
-    public async Task<ActionResult<Ticket>> GetById(int id)
+    [HttpGet("{incidentId}")]
+    public async Task<ActionResult<Ticket>> GetById(string incidentId)
     {
-        var ticket = await _db.Tickets.FindAsync(id);
+        var ticket = await _db.Tickets.FirstOrDefaultAsync(t => t.IncidentId == incidentId);
         return ticket is null ? NotFound() : ticket;
     }
 
@@ -34,39 +34,56 @@ public class TicketsController : ControllerBase
         {
             Title = dto.Title,
             Description = dto.Description,
-            Submitter = dto.Submitter
+            CreatedBy = dto.CreatedBy
         };
 
         _db.Tickets.Add(ticket);
         await _db.SaveChangesAsync();
-        return CreatedAtAction(nameof(GetById), new { id = ticket.Id }, ticket);
+        ticket.IncidentId = $"INC{10000 + ticket.Id}";
+        await _db.SaveChangesAsync();
+        var (success, errorMessage) = await TryClassifyAsync(ticket);
+        if (!success)
+        {
+            // Ticket still exists and was created successfully; just log the classification failure
+            Console.WriteLine($"Auto-classification failed for {ticket.IncidentId}: {errorMessage}");
+        }
+
+        return CreatedAtAction(nameof(GetById), new { incidentId = ticket.IncidentId }, ticket);
     }
 
-    [HttpPut("{id}")]
-    public async Task<ActionResult> Update(int id, Ticket updated)
+    [HttpPut("{incidentId}")]
+    public async Task<ActionResult> Update(string incidentId, Ticket updated)
     {
-        if (id != updated.Id) return BadRequest();
-        _db.Entry(updated).State = EntityState.Modified;
+        var existing = await _db.Tickets.FirstOrDefaultAsync(t => t.IncidentId == incidentId);
+        if (existing is null) return NotFound();
+
+        existing.Title = updated.Title;
+        existing.Description = updated.Description;
+        existing.Category = updated.Category;
+        existing.Severity = updated.Severity;
+        existing.Status = updated.Status;
+        existing.AssignedTeam = updated.AssignedTeam;
+        existing.ResolvedAt = updated.ResolvedAt;
+        existing.Resolution = updated.Resolution;
+        existing.Summary = updated.Summary;
+
         await _db.SaveChangesAsync();
         return NoContent();
     }
 
-    [HttpDelete("{id}")]
-    public async Task<IActionResult> Delete(int id)
+    [HttpDelete("{incidentId}")]
+    public async Task<IActionResult> Delete(string incidentId)
     {
-        var ticket = await _db.Tickets.FindAsync(id);
+        var ticket = await _db.Tickets.FirstOrDefaultAsync(t => t.IncidentId == incidentId);
         if (ticket is null) return NotFound();
         _db.Tickets.Remove(ticket);
         await _db.SaveChangesAsync();
         return NoContent();
     }
-
-    [HttpPost("{id}/classify")]
-    public async Task<ActionResult<Ticket>> Classify(int id)
+    // [HttpPost("{id}/classify")]
+    // public async Task<ActionResult<Ticket>> Classify(int id)
+    public async Task<(bool Success, string? ErrorMessage)> TryClassifyAsync(Ticket ticket)
     {
-        var ticket = await _db.Tickets.FindAsync(id);
-        if (ticket is null) return NotFound();
-
         var client = _httpClientFactory.CreateClient("ClassificationService");
 
         var requestBody = new ClassificationRequest
@@ -86,20 +103,20 @@ public class TicketsController : ControllerBase
         }
         catch (HttpRequestException)
         {
-            return StatusCode(503, "Classification service is unreachable. Is it running on port 8000?");
+            return (false, "Classification service is unreachable. Is it running on port 8000?");
         }
 
         if (!response.IsSuccessStatusCode)
         {
-            return StatusCode(502, "Classification service returned an error.");
+            return (false, "Classification service returned an error.");
         }
+
         var responseJson = await response.Content.ReadAsStringAsync();
         var result = JsonSerializer.Deserialize<ClassificationResponse>(
             responseJson,
-            new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
-        );
+            new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
-        if (result is null) return StatusCode(502, "Could not parse classification response.");
+        if (result is null) return (false, "Could not parse classification response.");
 
         ticket.Category = result.Category;
         ticket.Severity = result.Severity;
@@ -108,7 +125,7 @@ public class TicketsController : ControllerBase
 
         await _db.SaveChangesAsync();
 
-        return Ok(ticket);
+        return (true, null);
     }
 
 }

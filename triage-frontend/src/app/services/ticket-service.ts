@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, Service } from '@angular/core';
 import { Observable } from 'rxjs';
-import { CreateTicketRequest, Ticket } from '../models/ticket';
+import { CreateTicketRequest, Ticket, UpdateTicketRequest } from '../models/ticket';
 import { tick } from '@angular/core/testing';
 
 @Injectable({
@@ -28,14 +28,20 @@ export class TicketService {
         return this.http.post<Ticket>(`${this.baseUrl}/${incidentId}/classify`,{});
     }
 
-    delete(incidentId:string):Observable<void>{
-        return this.http.delete<void>(`${this.baseUrl}/${incidentId}`);
+    update(incidentId: string, ticket: UpdateTicketRequest): Observable<Ticket> {
+    return this.http.put<Ticket>(`${this.baseUrl}/${incidentId}`, ticket);
     }
 
-    resolve(incidentId: string, rootCause: string, resolution: string): Observable<Ticket> {
-      return this.http.post<Ticket>(`${this.baseUrl}/${incidentId}/resolve`, {
+    resolve(incidentId: string, rootCauseCategory: string, rootCause: string, resolution: string): Observable<Ticket> {
+    return this.http.post<Ticket>(`${this.baseUrl}/${incidentId}/resolve`, {
+        rootCauseCategory,
         rootCause,
         resolution
     });
-}
+    }
+
+    delete(incidentId: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/${incidentId}`);
+    }
+    
 }

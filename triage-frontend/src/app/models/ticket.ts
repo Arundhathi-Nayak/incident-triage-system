@@ -11,6 +11,7 @@ export interface Ticket {
   createdAt: string;
   resolvedAt: string | null;
   resolution: string | null;
+  rootCauseCategory: string | null;
   rootCause: string | null;
   summary: string | null;
 }
@@ -19,4 +20,17 @@ export interface CreateTicketRequest{
     title:string;
     description:string;
     createdBy:string;
+}
+
+export interface UpdateTicketRequest {
+  title: string;
+  description: string;
+  category: string | null;
+  severity: string | null;
+  status: string;
+  assignedTeam: string | null;
+  resolution: string | null;
+  rootCauseCategory: string | null;
+  rootCause: string | null;
+  summary: string | null;
 }

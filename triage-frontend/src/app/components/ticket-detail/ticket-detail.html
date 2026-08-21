@@ -7,9 +7,16 @@
   <div *ngIf="ticket() as t" class="ticket-card">
     <div class="ticket-header">
       <h2>{{ t.incidentId }}</h2>
-      <span class="badge" [ngClass]="statusClass(t.status)">{{ t.status }}</span>
+      <div class="header-actions">
+        <span class="badge" [ngClass]="statusClass(t.status)">{{ t.status }}</span>
+        <button *ngIf="!isEditingTicket()" class="edit-btn" (click)="startEditingTicket()">Edit</button>
+        <button class="delete-btn" (click)="deleteTicket()" [disabled]="isDeleting()">
+          {{ isDeleting() ? 'Deleting...' : 'Delete' }}
+        </button>
+      </div>
     </div>
 
+   <ng-container *ngIf="!isEditingTicket()">
     <h3 class="title">{{ t.title }}</h3>
     <p class="description">{{ t.description }}</p>
 
@@ -40,13 +47,24 @@
         <span>{{ t.resolvedAt | date:'medium' }}</span>
       </div>
     </div>
-
     <div class="summary-box" *ngIf="t.summary">
       <label>Summary</label>
       <p>{{ t.summary }}</p>
     </div>
+ </ng-container>
 
       <div class="resolution-section">
+         <div class="field">
+        <label for="rootCauseCategory">Root cause category</label>
+        <select
+          id="rootCauseCategory"
+          [(ngModel)]="resolveData.rootCauseCategory"
+          name="rootCauseCategory"
+          [disabled]="isResolutionFieldsDisabled()">
+          <option value="" disabled>Select a category</option>
+          <option *ngFor="let rc of options()?.rootCauseCategories" [value]="rc">{{ rc }}</option>
+        </select>
+      </div>
       <div class="resolution-header">
         <h3>Root cause &amp; resolution</h3>
         <span *ngIf="t.status === 'Resolved'" class="resolved-tag">
@@ -91,6 +109,61 @@
         <button class="cancel-btn" (click)="cancelEditingResolution()" [disabled]="isResolving()">
           Cancel
         </button>
+      </div>
+    </div>
+
+
+
+  <!-- Edit form -->
+    <div class="edit-form" *ngIf="isEditingTicket() && options() as opts">
+      <div class="field">
+        <label for="editTitle">Title</label>
+        <input id="editTitle" type="text" [(ngModel)]="editData.title" name="editTitle" />
+      </div>
+
+      <div class="field">
+        <label for="editDescription">Description</label>
+        <textarea id="editDescription" [(ngModel)]="editData.description" name="editDescription" rows="4"></textarea>
+      </div>
+
+       <div class="field-row">
+        <div class="field">
+          <label for="editCategory">Category</label>
+          <select id="editCategory" [(ngModel)]="editData.category" name="editCategory">
+            <option *ngFor="let c of opts.categories" [value]="c">{{ c }}</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="editSeverity">Severity</label>
+          <select id="editSeverity" [(ngModel)]="editData.severity" name="editSeverity">
+            <option *ngFor="let s of opts.severities" [value]="s">{{ s }}</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="editStatus">Status</label>
+          <select id="editStatus" [(ngModel)]="editData.status" name="editStatus">
+            <option *ngFor="let s of opts.statuses" [value]="s">{{ s }}</option>
+          </select>
+        </div>
+
+       <div class="field">
+          <label for="editTeam">Assigned team</label>
+          <select id="editTeam" [(ngModel)]="editData.assignedTeam" name="editTeam">
+            <option *ngFor="let t2 of opts.assignedTeams" [value]="t2">{{ t2 }}</option>
+          </select>
+        </div>
+      </div>  
+        <p class="error" *ngIf="editError()">{{ editError() }}</p>
+
+      <div class="edit-actions">
+        <button class="save-btn" (click)="saveEdit()" [disabled]="isSavingEdit()">
+          {{ isSavingEdit() ? 'Saving...' : 'Save changes' }}
+        </button>
+        <button class="cancel-btn" (click)="cancelEditingTicket()" [disabled]="isSavingEdit()">Cancel</button>
       </div>
     </div>
 

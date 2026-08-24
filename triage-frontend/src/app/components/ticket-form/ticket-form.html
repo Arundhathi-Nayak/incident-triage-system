@@ -1,46 +1,224 @@
-<div class="ticket-form-container">
-   <a routerLink="/" class="back-link">← Back to dashboard</a>
-  <h2>Raise a ticket</h2>
+<div class="ticket-page">
 
-  <form (ngSubmit)="onSubmit()" #form="ngForm">
-    <div class="field">
-      <label for="title">Title</label>
-      <input
-        id="title"
-        type="text"
-        [(ngModel)]="formData.title"
-        name="title"
-        placeholder="Brief summary of the issue"
-        required />
-    </div>
+  <!-- BACK BUTTON ONLY -->
+  <div class="page-top">
 
-    <div class="field">
-      <label for="description">Description</label>
-      <textarea
-        id="description"
-        [(ngModel)]="formData.description"
-        name="description"
-        rows="5"
-        placeholder="What's happening, what have you tried, what's the impact?"
-        required></textarea>
-    </div>
+    <button
+      type="button"
+      class="back-link"
+      (click)="goToDashboard()">
 
-    <div class="field">
-      <label for="submitter">Your email</label>
-      <input
-        id="submitter"
-        type="email"
-        [(ngModel)]="formData.createdBy"
-        name="submitter"
-        placeholder="you@company.com"
-        required />
-    </div>
+      <span>←</span>
+      Back to dashboard
 
-    <button type="submit" [disabled]="isSubmitting()">
-      {{ isSubmitting() ? 'Submitting...' : 'Submit ticket' }}
     </button>
 
-    <p class="success" *ngIf="successMessage">{{ successMessage() }}</p>
-    <p class="error" *ngIf="errorMessage">{{ errorMessage() }}</p>
-  </form>
+  </div>
+
+
+  <!-- CENTERED FORM -->
+  <main class="form-card">
+
+    <div class="form-header">
+
+      <p class="form-label">
+        INCIDENT DETAILS
+      </p>
+
+      <h2>
+        Create a new incident
+      </h2>
+
+      <p>
+        Provide the information below to submit your incident.
+      </p>
+
+    </div>
+
+    <!-- YOUR FORM STARTS HERE -->
+
+    <form
+      (ngSubmit)="onSubmit()"
+      #form="ngForm"
+      novalidate>
+
+      <div class="field">
+
+        <label for="title">
+          Issue title
+          <span>*</span>
+        </label>
+
+        <input
+          id="title"
+          type="text"
+          [(ngModel)]="formData.title"
+          name="title"
+          placeholder="e.g. Unable to access company VPN"
+          required
+          #title="ngModel" />
+
+        <small
+          *ngIf="title.invalid && title.touched"
+          class="field-error">
+
+          Please enter an issue title.
+
+        </small>
+
+      </div>
+
+
+      <div class="field">
+
+        <div class="label-row">
+
+          <label for="description">
+            Description
+            <span>*</span>
+          </label>
+
+          <small>
+            Be as specific as possible
+          </small>
+
+        </div>
+
+        <textarea
+          id="description"
+          [(ngModel)]="formData.description"
+          name="description"
+          rows="7"
+          placeholder="Describe what happened, when it started, what you have tried, and how it is affecting you."
+          required
+          #description="ngModel">
+        </textarea>
+
+        <small
+          *ngIf="description.invalid && description.touched"
+          class="field-error">
+
+          Please provide a description of the issue.
+
+        </small>
+
+      </div>
+
+
+      <div class="field">
+
+        <label for="submitter">
+          Your email
+          <span>*</span>
+        </label>
+
+        <input
+          id="submitter"
+          type="email"
+          [(ngModel)]="formData.createdBy"
+          name="submitter"
+          placeholder="you@company.com"
+          required
+          email
+          #submitter="ngModel" />
+
+        <small
+          *ngIf="submitter.invalid && submitter.touched"
+          class="field-error">
+
+          Please enter a valid email address.
+
+        </small>
+
+      </div>
+
+
+      <!-- AI NOTE -->
+
+      <div class="submission-note">
+
+        <div class="note-icon">
+          ✓
+        </div>
+
+        <div>
+
+          <strong>
+            AI-powered incident triage
+          </strong>
+
+          <p>
+            Your ticket will be automatically analysed and assigned
+            a category, severity and appropriate team.
+          </p>
+
+        </div>
+
+      </div>
+
+
+      <!-- SUCCESS -->
+
+      <div
+        *ngIf="successMessage()"
+        class="success-message">
+
+        <span class="message-mark">
+          ✓
+        </span>
+
+        <div>
+          <strong>Ticket submitted</strong>
+          <p>{{ successMessage() }}</p>
+        </div>
+
+      </div>
+
+
+      <!-- ERROR -->
+
+      <div
+        *ngIf="errorMessage()"
+        class="error-message">
+
+        <span class="message-mark">
+          !
+        </span>
+
+        <div>
+          <strong>Unable to submit ticket</strong>
+          <p>{{ errorMessage() }}</p>
+        </div>
+
+      </div>
+
+
+      <!-- ACTIONS -->
+
+      <div class="form-actions">
+
+        <button
+          type="button"
+          class="cancel-btn"
+          (click)="cancel()">
+
+          Cancel
+
+        </button>
+
+        <button
+          type="submit"
+          class="submit-btn"
+          [disabled]="isSubmitting() || form.invalid">
+
+          {{ isSubmitting() ? 'Submitting...' : 'Submit ticket' }}
+
+        </button>
+
+      </div>
+
+    </form>
+
+  </main>
+
 </div>

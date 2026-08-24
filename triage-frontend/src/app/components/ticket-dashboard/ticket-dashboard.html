@@ -1,57 +1,669 @@
 <div class="dashboard-container">
-  <div class="header">
-    <h2>Ticket dashboard</h2>
-    <a routerLink="/create" class="create-btn">+ Create ticket</a>
-  </div>
+
+  <!-- =====================================================
+       HEADER
+       ===================================================== -->
+
+  <header class="dashboard-header">
+
+    <div class="header-content">
+
+      <h1>Incident Dashboard</h1>
+
+      <p>
+        Monitor, track and resolve incidents efficiently.
+      </p>
+
+    </div>
+
+    <a
+      routerLink="/create"
+      class="create-btn">
+
+      <span class="plus">+</span>
+      Create incident
+
+    </a>
+
+  </header>
+
+
+  <!-- =====================================================
+       ERROR
+       ===================================================== -->
+
+  <p
+    *ngIf="errorMessage()"
+    class="error">
+
+    {{ errorMessage() }}
+
+  </p>
+
+
+  <!-- =====================================================
+       OVERVIEW
+       RESOLUTION + KPI
+       ===================================================== -->
+
+  <section class="overview-section">
+
+    <!-- ================= RESOLUTION ================= -->
+
+    <div class="resolution-card">
+
+      <div class="section-label">
+        INCIDENT RESOLUTION
+      </div>
+
+      <div class="resolution-content">
+
+        <div
+          class="progress-circle"
+          [style.--progress]="resolvedPercentage()">
+
+          <div class="progress-circle-content">
+
+            <strong>
+              {{ resolvedPercentage() }}%
+            </strong>
+
+            <span>
+              Resolved
+            </span>
+
+          </div>
+
+        </div>
+
+
+        <div class="resolution-info">
+
+          <div class="resolution-number">
+
+            <strong>
+              {{ resolvedTickets() }}
+            </strong>
+
+            <span>
+              / {{ totalTickets() }}
+            </span>
+
+          </div>
+
+          <p>
+            incidents successfully resolved
+          </p>
+
+          <div class="progress-track">
+
+            <div
+              class="progress-fill"
+              [style.width.%]="resolvedPercentage()">
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <!-- ================= KPI ================= -->
+
+    <div class="overview-card">
+
+      <div class="section-label">
+        INCIDENT OVERVIEW
+      </div>
+
+      <div class="kpi-row">
+
+        <!-- TOTAL -->
+
+        <div class="mini-kpi total">
+
+          <span>
+            Total incidents
+          </span>
+
+          <strong>
+            {{ totalTickets() }}
+          </strong>
+
+        </div>
+
+
+        <!-- OPEN -->
+
+        <div class="mini-kpi open">
+
+          <span>
+            Open
+          </span>
+
+          <strong>
+            {{ openTickets() }}
+          </strong>
+
+        </div>
+
+
+        <!-- IN PROGRESS -->
+
+        <div class="mini-kpi progress">
+
+          <span>
+            In progress
+          </span>
+
+          <strong>
+            {{ inProgressTickets() }}
+          </strong>
+
+        </div>
+
+
+        <!-- RESOLVED -->
+
+        <div class="mini-kpi resolved">
+
+          <span>
+            Resolved
+          </span>
+
+          <strong>
+            {{ resolvedTickets() }}
+          </strong>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <!-- =====================================================
+       SEARCH + FILTER
+       ===================================================== -->
 
   <div class="toolbar">
-    <input
-      type="text"
-      placeholder="Search by incident ID, title, submitter, category, team..."
-      [value]="searchTerm()"
-      (input)="onSearchChange($any($event.target).value)" />
-    <button (click)="loadTickets()" [disabled]="isLoading()">Refresh</button>
+
+    <div class="search-box">
+
+      <span class="search-icon">
+        ⌕
+      </span>
+
+      <input
+        type="text"
+        placeholder="Search incidents, titles, teams..."
+        [value]="searchTerm()"
+        (input)="onSearchChange($any($event.target).value)" />
+
+    </div>
+
+
+    <button
+      type="button"
+      class="filter-btn"
+      [class.active]="showFilters()"
+      (click)="toggleFilters()">
+
+      <span class="filter-symbol">
+        ☷
+      </span>
+
+      Filter
+
+      <span
+        *ngIf="activeFilterCount() > 0"
+        class="filter-count">
+
+        {{ activeFilterCount() }}
+
+      </span>
+
+    </button>
+
   </div>
 
-  <p class="error" *ngIf="errorMessage()">{{ errorMessage() }}</p>
-  <p *ngIf="isLoading()">Loading tickets...</p>
 
-  <table *ngIf="!isLoading() && filteredTickets().length > 0">
-    <thead>
-      <tr>
-        <th>Incident</th>
-        <th>Title</th>
-        <th>Created by</th>
-        <th>Status</th>
-        <th>Category</th>
-        <th>Severity</th>
-        <th>Assigned team</th>
-        <th></th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr *ngFor="let ticket of filteredTickets()">
-        <td>{{ ticket.incidentId }}</td>
-        <td class="title-cell">{{ ticket.title }}</td>
-        <td>{{ ticket.createdBy }}</td>
-        <td><span class="badge" [ngClass]="statusClass(ticket.status)">{{ ticket.status }}</span></td>
-        <td>{{ ticket.category || '—' }}</td>
-        <td>
-          <span class="badge" [ngClass]="severityClass(ticket.severity)" *ngIf="ticket.severity">
-            {{ ticket.severity }}
-          </span>
-          <span *ngIf="!ticket.severity">—</span>
-        </td>
-        <td>{{ ticket.assignedTeam || '—' }}</td>
-        <td>
-          <a [routerLink]="['/tickets', ticket.incidentId]" class="view-link">View</a>
-        </td>
-      </tr>
-    </tbody>
-  </table>
+  <!-- =====================================================
+       FILTER PANEL
+       ===================================================== -->
 
-  <p *ngIf="!isLoading() && filteredTickets().length === 0 && tickets().length > 0">
-    No tickets match your search.
-  </p>
-  <p *ngIf="!isLoading() && tickets().length === 0">No tickets yet.</p>
+  <div
+    *ngIf="showFilters()"
+    class="filter-panel">
+
+    <div class="filter-panel-header">
+
+      <div>
+
+        <h3>
+          Filter incidents
+        </h3>
+
+        <p>
+          Choose the criteria you want to filter by.
+        </p>
+
+      </div>
+
+      <button
+        type="button"
+        class="close-filter"
+        (click)="closeFilters()">
+
+        ×
+
+      </button>
+
+    </div>
+
+
+    <div class="filter-grid">
+
+      <!-- STATUS -->
+
+      <div class="filter-field">
+
+        <label>
+          Status
+        </label>
+
+        <select [(ngModel)]="selectedStatus">
+
+          <option value="">
+            All statuses
+          </option>
+
+          <option
+            *ngFor="let status of statuses"
+            [value]="status">
+
+            {{ status }}
+
+          </option>
+
+        </select>
+
+      </div>
+
+
+      <!-- SEVERITY -->
+
+      <div class="filter-field">
+
+        <label>
+          Severity
+        </label>
+
+        <select [(ngModel)]="selectedSeverity">
+
+          <option value="">
+            All severities
+          </option>
+
+          <option
+            *ngFor="let severity of severities"
+            [value]="severity">
+
+            {{ severity }}
+
+          </option>
+
+        </select>
+
+      </div>
+
+
+      <!-- CATEGORY -->
+
+      <div class="filter-field">
+
+        <label>
+          Category
+        </label>
+
+        <select [(ngModel)]="selectedCategory">
+
+          <option value="">
+            All categories
+          </option>
+
+          <option
+            *ngFor="let category of categories()"
+            [value]="category">
+
+            {{ category }}
+
+          </option>
+
+        </select>
+
+      </div>
+
+
+      <!-- TEAM -->
+
+      <div class="filter-field">
+
+        <label>
+          Assigned team
+        </label>
+
+        <select [(ngModel)]="selectedTeam">
+
+          <option value="">
+            All teams
+          </option>
+
+          <option
+            *ngFor="let team of teams()"
+            [value]="team">
+
+            {{ team }}
+
+          </option>
+
+        </select>
+
+      </div>
+
+    </div>
+
+
+    <div class="filter-actions">
+
+      <button
+        type="button"
+        class="clear-btn"
+        (click)="clearFilters()">
+
+        Clear filters
+
+      </button>
+
+      <button
+        type="button"
+        class="apply-btn"
+        (click)="closeFilters()">
+
+        Apply filters
+
+      </button>
+
+    </div>
+
+  </div>
+
+
+  <!-- =====================================================
+       LOADING
+       ===================================================== -->
+
+  <div
+    *ngIf="isLoading()"
+    class="loading-state">
+
+    <div class="spinner"></div>
+
+    <p>
+      Loading incidents...
+    </p>
+
+  </div>
+
+
+  <!-- =====================================================
+       INCIDENT TABLE
+       ===================================================== -->
+
+  <section
+    *ngIf="!isLoading()"
+    class="table-card">
+
+    <!-- TABLE HEADER -->
+
+    <div class="table-header">
+
+      <div>
+
+        <h3>
+          Incidents
+        </h3>
+
+        <span>
+          {{ filteredTickets().length }} incidents found
+        </span>
+
+      </div>
+
+    </div>
+
+
+    <!-- TABLE -->
+
+    <div
+      *ngIf="filteredTickets().length > 0"
+      class="table-wrapper">
+
+      <table>
+
+        <thead>
+
+          <tr>
+
+            <th>
+              Incident
+            </th>
+
+            <th>
+              Title
+            </th>
+
+            <th>
+              Created by
+            </th>
+
+            <th>
+              Status
+            </th>
+
+            <th>
+              Category
+            </th>
+
+            <th>
+              Severity
+            </th>
+
+            <th>
+              Assigned team
+            </th>
+
+          </tr>
+
+        </thead>
+
+
+        <tbody>
+
+          <tr
+            *ngFor="let ticket of filteredTickets()">
+
+            <!-- INCIDENT -->
+
+            <td>
+
+              <a
+                [routerLink]="['/tickets', ticket.incidentId]"
+                class="incident-link">
+
+                {{ ticket.incidentId }}
+
+              </a>
+
+            </td>
+
+
+            <!-- TITLE -->
+
+            <td class="title-cell">
+
+              {{ ticket.title }}
+
+            </td>
+
+
+            <!-- CREATED BY -->
+
+            <td>
+
+              {{ ticket.createdBy || '—' }}
+
+            </td>
+
+
+            <!-- STATUS -->
+
+            <td>
+
+              <span
+                *ngIf="ticket.status"
+                class="badge"
+                [ngClass]="statusClass(ticket.status)">
+
+                {{ ticket.status }}
+
+              </span>
+
+              <span *ngIf="!ticket.status">
+                —
+              </span>
+
+            </td>
+
+
+            <!-- CATEGORY -->
+
+            <td>
+
+              {{ ticket.category || '—' }}
+
+            </td>
+
+
+            <!-- SEVERITY -->
+
+            <td>
+
+              <span
+                *ngIf="ticket.severity"
+                class="badge"
+                [ngClass]="severityClass(ticket.severity)">
+
+                {{ ticket.severity }}
+
+              </span>
+
+              <span *ngIf="!ticket.severity">
+                —
+              </span>
+
+            </td>
+
+
+            <!-- TEAM -->
+
+            <td>
+
+              {{ ticket.assignedTeam || '—' }}
+
+            </td>
+
+          </tr>
+
+        </tbody>
+
+      </table>
+
+    </div>
+
+
+    <!-- =================================================
+         NO SEARCH RESULTS
+         ================================================= -->
+
+    <div
+      *ngIf="
+        filteredTickets().length === 0 &&
+        tickets().length > 0
+      "
+      class="empty-state">
+
+      <div class="empty-icon">
+        ⌕
+      </div>
+
+      <h3>
+        No matching incidents
+      </h3>
+
+      <p>
+        Try changing your search or filters.
+      </p>
+
+      <button
+        type="button"
+        (click)="clearFilters(); searchTerm.set('')">
+
+        Clear search & filters
+
+      </button>
+
+    </div>
+
+
+    <!-- =================================================
+         NO TICKETS
+         ================================================= -->
+
+    <div
+      *ngIf="
+        filteredTickets().length === 0 &&
+        tickets().length === 0
+      "
+      class="empty-state">
+
+      <div class="empty-icon">
+        +
+      </div>
+
+      <h3>
+        No incidents yet
+      </h3>
+
+      <p>
+        Create your first incident to get started.
+      </p>
+
+      <a
+        routerLink="/create"
+        class="empty-create-btn">
+
+        + Create incident
+
+      </a>
+
+    </div>
+
+  </section>
+
 </div>

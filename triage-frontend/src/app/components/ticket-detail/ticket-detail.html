@@ -1,207 +1,886 @@
 <div class="detail-container">
-  <a routerLink="/" class="back-link">← Back to dashboard</a>
 
-  <p *ngIf="isLoading()">Loading ticket...</p>
-  <p class="error" *ngIf="errorMessage()">{{ errorMessage() }}</p>
+  <!-- BACK TO DASHBOARD -->
+<div class="page-top">
 
-  <div *ngIf="ticket() as t" class="ticket-card">
-    <div class="ticket-header">
-      <h2>{{ t.incidentId }}</h2>
-      <div class="header-actions">
-        <span class="badge" [ngClass]="statusClass(t.status)">{{ t.status }}</span>
-        <button *ngIf="!isEditingTicket()" class="edit-btn" (click)="startEditingTicket()">Edit</button>
-        <button class="delete-btn" (click)="deleteTicket()" [disabled]="isDeleting()">
-          {{ isDeleting() ? 'Deleting...' : 'Delete' }}
-        </button>
-      </div>
-    </div>
+    <button
+      type="button"
+      class="back-link"
+      (click)="goToDashboard()">
 
-   <ng-container *ngIf="!isEditingTicket()">
-    <h3 class="title">{{ t.title }}</h3>
-    <p class="description">{{ t.description }}</p>
+      <span>←</span>
+      Back to dashboard
 
-    <div class="meta-grid">
-      <div class="meta-item">
-        <label>Category</label>
-        <span>{{ t.category || '—' }}</span>
-      </div>
-      <div class="meta-item">
-        <label>Severity</label>
-        <span class="badge" [ngClass]="severityClass(t.severity)" *ngIf="t.severity">{{ t.severity }}</span>
-        <span *ngIf="!t.severity">—</span>
-      </div>
-      <div class="meta-item">
-        <label>Assigned team</label>
-        <span>{{ t.assignedTeam || '—' }}</span>
-      </div>
-      <div class="meta-item">
-        <label>Created by</label>
-        <span>{{ t.createdBy }}</span>
-      </div>
-      <div class="meta-item">
-        <label>Created at</label>
-        <span>{{ t.createdAt | date:'medium' }}</span>
-      </div>
-      <div class="meta-item" *ngIf="t.resolvedAt">
-        <label>Resolved at</label>
-        <span>{{ t.resolvedAt | date:'medium' }}</span>
-      </div>
-    </div>
-    <div class="summary-box" *ngIf="t.summary">
-      <label>Summary</label>
-      <p>{{ t.summary }}</p>
-    </div>
- </ng-container>
-
-      <div class="resolution-section">
-         <div class="field">
-        <label for="rootCauseCategory">Root cause category</label>
-        <select
-          id="rootCauseCategory"
-          [(ngModel)]="resolveData.rootCauseCategory"
-          name="rootCauseCategory"
-          [disabled]="isResolutionFieldsDisabled()">
-          <option value="" disabled>Select a category</option>
-          <option *ngFor="let rc of options()?.rootCauseCategories" [value]="rc">{{ rc }}</option>
-        </select>
-      </div>
-      <div class="resolution-header">
-        <h3>Root cause &amp; resolution</h3>
-        <span *ngIf="t.status === 'Resolved'" class="resolved-tag">
-          ✓ Resolved {{ t.resolvedAt | date:'medium' }}
-        </span>
-        <button
-          *ngIf="t.status !== 'Resolved' && !isEditingResolution()"
-          class="resolve-btn"
-          (click)="startEditingResolution()">
-          Resolve
-        </button>
-      </div>
-
-      <div class="field">
-        <label for="rootCause">Root cause</label>
-        <textarea
-          id="rootCause"
-          [(ngModel)]="resolveData.rootCause"
-          name="rootCause"
-          rows="3"
-          [disabled]="isResolutionFieldsDisabled()"
-          placeholder="What actually caused this issue?"></textarea>
-      </div>
-
-      <div class="field">
-        <label for="resolution">Resolution</label>
-        <textarea
-          id="resolution"
-          [(ngModel)]="resolveData.resolution"
-          name="resolution"
-          rows="3"
-          [disabled]="isResolutionFieldsDisabled()"
-          placeholder="What was done to fix it?"></textarea>
-      </div>
-
-      <p class="error" *ngIf="resolveError()">{{ resolveError() }}</p>
-
-      <div class="resolution-actions" *ngIf="isEditingResolution()">
-        <button class="submit-resolve-btn" (click)="submitResolution()" [disabled]="isResolving()">
-          {{ isResolving() ? 'Submitting...' : 'Submit resolution' }}
-        </button>
-        <button class="cancel-btn" (click)="cancelEditingResolution()" [disabled]="isResolving()">
-          Cancel
-        </button>
-      </div>
-    </div>
-
-
-
-  <!-- Edit form -->
-    <div class="edit-form" *ngIf="isEditingTicket() && options() as opts">
-      <div class="field">
-        <label for="editTitle">Title</label>
-        <input id="editTitle" type="text" [(ngModel)]="editData.title" name="editTitle" />
-      </div>
-
-      <div class="field">
-        <label for="editDescription">Description</label>
-        <textarea id="editDescription" [(ngModel)]="editData.description" name="editDescription" rows="4"></textarea>
-      </div>
-
-       <div class="field-row">
-        <div class="field">
-          <label for="editCategory">Category</label>
-          <select id="editCategory" [(ngModel)]="editData.category" name="editCategory">
-            <option *ngFor="let c of opts.categories" [value]="c">{{ c }}</option>
-          </select>
-        </div>
-
-        <div class="field">
-          <label for="editSeverity">Severity</label>
-          <select id="editSeverity" [(ngModel)]="editData.severity" name="editSeverity">
-            <option *ngFor="let s of opts.severities" [value]="s">{{ s }}</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="field-row">
-        <div class="field">
-          <label for="editStatus">Status</label>
-          <select id="editStatus" [(ngModel)]="editData.status" name="editStatus">
-            <option *ngFor="let s of opts.statuses" [value]="s">{{ s }}</option>
-          </select>
-        </div>
-
-       <div class="field">
-          <label for="editTeam">Assigned team</label>
-          <select id="editTeam" [(ngModel)]="editData.assignedTeam" name="editTeam">
-            <option *ngFor="let t2 of opts.assignedTeams" [value]="t2">{{ t2 }}</option>
-          </select>
-        </div>
-      </div>  
-        <p class="error" *ngIf="editError()">{{ editError() }}</p>
-
-      <div class="edit-actions">
-        <button class="save-btn" (click)="saveEdit()" [disabled]="isSavingEdit()">
-          {{ isSavingEdit() ? 'Saving...' : 'Save changes' }}
-        </button>
-        <button class="cancel-btn" (click)="cancelEditingTicket()" [disabled]="isSavingEdit()">Cancel</button>
-      </div>
-    </div>
-
-    <div class="comments-section">
-      <h3>Comments</h3>
-
-      <p class="error" *ngIf="commentError()">{{ commentError() }}</p>
-      <p *ngIf="isLoadingComments()">Loading comments...</p>
-
-      <div class="comment-list" *ngIf="!isLoadingComments()">
-        <div class="comment" *ngFor="let c of comments()">
-          <div class="comment-header">
-            <span class="comment-author">{{ c.author }}</span>
-            <span class="comment-time">{{ c.createdAt | date:'short' }}</span>
-          </div>
-          <p class="comment-text">{{ c.text }}</p>
-        </div>
-        <p *ngIf="comments().length === 0" class="no-comments">No comments yet.</p>
-      </div>
-
-      <form (ngSubmit)="postComment()" class="comment-form">
-        <input
-          type="text"
-          [(ngModel)]="newComment.author"
-          name="author"
-          placeholder="Your name"
-          required />
-        <textarea
-          [(ngModel)]="newComment.text"
-          name="text"
-          rows="3"
-          placeholder="Add a comment..."
-          required></textarea>
-        <button type="submit" [disabled]="isPostingComment()">
-          {{ isPostingComment() ? 'Posting...' : 'Add comment' }}
-        </button>
-      </form>
-    </div>
+    </button>
 
   </div>
+
+
+
+
+  <!-- LOADING -->
+  <div *ngIf="isLoading()" class="loading-state">
+    <div class="spinner"></div>
+    <p>Loading incident...</p>
+  </div>
+
+
+  <!-- ERROR -->
+  <div *ngIf="errorMessage()" class="error-message">
+    {{ errorMessage() }}
+  </div>
+
+
+  <!-- TICKET -->
+  <div *ngIf="ticket() as t" class="ticket-card">
+
+
+    <!-- =====================================================
+         TICKET HEADER
+         ===================================================== -->
+
+    <header class="ticket-header">
+
+      <div class="ticket-title-area">
+
+        <div class="incident-label">
+          INCIDENT
+        </div>
+
+        <div class="incident-heading">
+
+          <h1>
+            {{ t.incidentId }}
+          </h1>
+
+          <span
+            class="status-badge"
+            [ngClass]="statusClass(t.status)">
+
+            {{ t.status || '—' }}
+
+          </span>
+
+        </div>
+
+        <p class="header-subtitle">
+          Incident details and resolution information
+        </p>
+
+      </div>
+
+
+      <!-- ACTIONS -->
+
+      <div class="header-actions">
+
+        <button
+          *ngIf="!isEditingTicket()"
+          type="button"
+          class="edit-btn"
+          (click)="startEditingTicket()">
+
+          Edit
+
+        </button>
+
+
+        <button
+          type="button"
+          class="delete-btn"
+          (click)="deleteTicket()"
+          [disabled]="isDeleting()">
+
+          {{
+            isDeleting()
+              ? 'Deleting...'
+              : 'Delete'
+          }}
+
+        </button>
+
+      </div>
+
+    </header>
+
+
+    <!-- =====================================================
+         EDIT MODE
+         ===================================================== -->
+
+    <div
+      *ngIf="isEditingTicket() && options() as opts"
+      class="edit-section">
+
+
+      <!-- BACK TO DETAILS -->
+
+      <button
+        type="button"
+        class="back-edit-btn"
+        (click)="cancelEditingTicket()"
+        [disabled]="isSavingEdit()">
+
+        ← Back to ticket details
+
+      </button>
+
+
+      <div class="section-heading">
+
+        <div>
+          <span class="section-label">
+            EDIT INCIDENT
+          </span>
+
+          <h2>
+            Update incident
+          </h2>
+        </div>
+
+      </div>
+
+
+      <!-- TITLE -->
+
+      <div class="field">
+
+        <label for="editTitle">
+          Title
+        </label>
+
+        <input
+          id="editTitle"
+          type="text"
+          [(ngModel)]="editData.title"
+          name="editTitle" />
+
+      </div>
+
+
+      <!-- DESCRIPTION -->
+
+      <div class="field">
+
+        <label for="editDescription">
+          Description
+        </label>
+
+        <textarea
+          id="editDescription"
+          [(ngModel)]="editData.description"
+          name="editDescription"
+          rows="5">
+        </textarea>
+
+      </div>
+
+
+      <!-- CATEGORY + SEVERITY -->
+
+      <div class="field-row">
+
+        <div class="field">
+
+          <label for="editCategory">
+            Category
+          </label>
+
+          <select
+            id="editCategory"
+            [(ngModel)]="editData.category"
+            name="editCategory">
+
+            <option
+              *ngFor="let c of opts.categories"
+              [value]="c">
+
+              {{ c }}
+
+            </option>
+
+          </select>
+
+        </div>
+
+
+        <div class="field">
+
+          <label for="editSeverity">
+            Severity
+          </label>
+
+          <select
+            id="editSeverity"
+            [(ngModel)]="editData.severity"
+            name="editSeverity">
+
+            <option
+              *ngFor="let s of opts.severities"
+              [value]="s">
+
+              {{ s }}
+
+            </option>
+
+          </select>
+
+        </div>
+
+      </div>
+
+
+      <!-- STATUS + TEAM -->
+
+      <div class="field-row">
+
+        <div class="field">
+
+          <label for="editStatus">
+            Status
+          </label>
+
+          <select
+            id="editStatus"
+            [(ngModel)]="editData.status"
+            name="editStatus">
+
+            <option
+              *ngFor="let s of opts.statuses"
+              [value]="s">
+
+              {{ s }}
+
+            </option>
+
+          </select>
+
+        </div>
+
+
+        <div class="field">
+
+          <label for="editTeam">
+            Assigned team
+          </label>
+
+          <select
+            id="editTeam"
+            [(ngModel)]="editData.assignedTeam"
+            name="editTeam">
+
+            <option
+              *ngFor="let team of opts.assignedTeams"
+              [value]="team">
+
+              {{ team }}
+
+            </option>
+
+          </select>
+
+        </div>
+
+      </div>
+
+
+      <!-- SUMMARY -->
+
+      <div class="field">
+
+        <label for="editSummary">
+          Summary
+        </label>
+
+        <textarea
+          id="editSummary"
+          [(ngModel)]="editData.summary"
+          name="editSummary"
+          rows="4">
+        </textarea>
+
+      </div>
+
+
+      <!-- EDIT ERROR -->
+
+      <div
+        *ngIf="editError()"
+        class="error-message">
+
+        {{ editError() }}
+
+      </div>
+
+
+      <!-- EDIT ACTIONS -->
+
+      <div class="form-actions">
+
+        <button
+          type="button"
+          class="cancel-btn"
+          (click)="cancelEditingTicket()"
+          [disabled]="isSavingEdit()">
+
+          Cancel
+
+        </button>
+
+
+        <button
+          type="button"
+          class="save-btn"
+          (click)="saveEdit()"
+          [disabled]="isSavingEdit()">
+
+          {{
+            isSavingEdit()
+              ? 'Saving...'
+              : 'Save changes'
+          }}
+
+        </button>
+
+      </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         NORMAL TICKET VIEW
+         ===================================================== -->
+
+    <ng-container *ngIf="!isEditingTicket()">
+
+
+      <!-- ===================================================
+           BASIC INFORMATION
+           =================================================== -->
+
+      <section class="ticket-overview">
+
+        <div class="main-field">
+
+          <label>
+            TITLE
+          </label>
+
+          <h2>
+            {{ t.title }}
+          </h2>
+
+        </div>
+
+
+        <div class="main-field">
+
+          <label>
+            DESCRIPTION
+          </label>
+
+          <p class="description">
+            {{ t.description }}
+          </p>
+
+        </div>
+
+
+        <!-- META INFORMATION -->
+
+        <div class="meta-grid">
+
+
+          <!-- CATEGORY -->
+
+          <div class="meta-item">
+
+            <label>
+              Category
+            </label>
+
+            <span>
+              {{ t.category || '—' }}
+            </span>
+
+          </div>
+
+
+          <!-- SEVERITY -->
+
+          <div class="meta-item">
+
+            <label>
+              Severity
+            </label>
+
+            <span
+              *ngIf="t.severity"
+              class="badge"
+              [ngClass]="severityClass(t.severity)">
+
+              {{ t.severity }}
+
+            </span>
+
+            <span *ngIf="!t.severity">
+              —
+            </span>
+
+          </div>
+
+
+          <!-- STATUS -->
+
+          <div class="meta-item">
+
+            <label>
+              Status
+            </label>
+
+            <span
+              class="badge"
+              [ngClass]="statusClass(t.status)">
+
+              {{ t.status || '—' }}
+
+            </span>
+
+          </div>
+
+
+          <!-- TEAM -->
+
+          <div class="meta-item">
+
+            <label>
+              Assigned team
+            </label>
+
+            <span>
+              {{ t.assignedTeam || '—' }}
+            </span>
+
+          </div>
+
+
+          <!-- CREATED BY -->
+
+          <div class="meta-item">
+
+            <label>
+              Created by
+            </label>
+
+            <span>
+              {{ t.createdBy || '—' }}
+            </span>
+
+          </div>
+
+
+          <!-- CREATED -->
+
+          <div class="meta-item">
+
+            <label>
+              Created at
+            </label>
+
+            <span>
+              {{ t.createdAt | date:'medium' }}
+            </span>
+
+          </div>
+
+
+          <!-- RESOLVED -->
+
+          <div
+            class="meta-item"
+            *ngIf="t.resolvedAt">
+
+            <label>
+              Resolved at
+            </label>
+
+            <span>
+              {{ t.resolvedAt | date:'medium' }}
+            </span>
+
+          </div>
+
+        </div>
+
+
+        <!-- SUMMARY -->
+
+        <div
+          *ngIf="t.summary"
+          class="summary-box">
+
+          <label>
+            SUMMARY
+          </label>
+
+          <p>
+            {{ t.summary }}
+          </p>
+
+        </div>
+
+      </section>
+
+
+      <!-- ===================================================
+           TABS
+           =================================================== -->
+
+      <div class="tabs">
+
+        <button
+          type="button"
+          class="tab-button"
+          [class.active]="activeTab() === 'resolution'"
+          (click)="showResolutionTab()">
+
+          Root cause & Resolution
+
+        </button>
+
+
+        <button
+          type="button"
+          class="tab-button"
+          [class.active]="activeTab() === 'comments'"
+          (click)="showCommentsTab()">
+
+          Comments
+
+        </button>
+
+      </div>
+
+
+      <!-- ===================================================
+           RESOLUTION
+           =================================================== -->
+
+      <section
+        *ngIf="activeTab() === 'resolution'"
+        class="tab-content">
+
+
+        <div class="section-header">
+
+          <div>
+
+            <span class="section-label">
+              INCIDENT RESOLUTION
+            </span>
+
+            <h2>
+              Root cause & Resolution
+            </h2>
+
+            <p>
+              Document why the incident occurred and how it was resolved.
+            </p>
+
+          </div>
+
+
+          <!-- ONLY OPEN INCIDENT SHOWS RESOLVE -->
+
+          <button
+            *ngIf="t.status !== 'Resolved'"
+            type="button"
+            class="resolve-btn"
+            (click)="onResolveClick()"
+            [disabled]="isResolving()">
+
+            {{
+              isResolving()
+                ? 'Resolving...'
+                : 'Resolve incident'
+            }}
+
+          </button>
+
+        </div>
+
+
+        <!-- ROOT CAUSE CATEGORY -->
+
+        <div class="field">
+
+          <label for="rootCauseCategory">
+            Root cause category
+            <span class="required">*</span>
+          </label>
+
+          <select
+            id="rootCauseCategory"
+            [(ngModel)]="resolveData.rootCauseCategory"
+            name="rootCauseCategory">
+
+            <option
+              value=""
+              disabled>
+
+              Select a category
+
+            </option>
+
+            <option
+              *ngFor="
+                let rc of options()?.rootCauseCategories
+              "
+              [value]="rc">
+
+              {{ rc }}
+
+            </option>
+
+          </select>
+
+        </div>
+
+
+        <!-- ROOT CAUSE -->
+
+        <div class="field">
+
+          <label for="rootCause">
+            Root cause
+            <span class="required">*</span>
+          </label>
+
+          <textarea
+            id="rootCause"
+            [(ngModel)]="resolveData.rootCause"
+            name="rootCause"
+            rows="4"
+            placeholder="What actually caused this issue?">
+          </textarea>
+
+        </div>
+
+
+        <!-- RESOLUTION -->
+
+        <div class="field">
+
+          <label for="resolution">
+            Resolution
+            <span class="required">*</span>
+          </label>
+
+          <textarea
+            id="resolution"
+            [(ngModel)]="resolveData.resolution"
+            name="resolution"
+            rows="4"
+            placeholder="What was done to fix the issue?">
+          </textarea>
+
+        </div>
+
+
+        <!-- RESOLUTION ERROR -->
+
+        <div
+          *ngIf="resolutionError()"
+          class="error-message">
+
+          {{ resolutionError() }}
+
+        </div>
+
+
+        <!-- ONLY RESOLVED INCIDENT CAN SAVE -->
+
+        <div
+          *ngIf="t.status === 'Resolved'"
+          class="resolution-actions">
+
+          <button
+            type="button"
+            class="save-btn"
+            (click)="saveResolvedResolution()"
+            [disabled]="isSavingResolution()">
+
+            {{
+              isSavingResolution()
+                ? 'Saving...'
+                : 'Save changes'
+            }}
+
+          </button>
+
+        </div>
+
+      </section>
+
+
+      <!-- ===================================================
+           COMMENTS
+           =================================================== -->
+
+      <section
+        *ngIf="activeTab() === 'comments'"
+        class="tab-content comments-section">
+
+
+        <div class="section-header">
+
+          <div>
+
+            <span class="section-label">
+              INCIDENT ACTIVITY
+            </span>
+
+            <h2>
+              Comments
+            </h2>
+
+            <p>
+              Add notes and communicate about this incident.
+            </p>
+
+          </div>
+
+        </div>
+
+
+        <!-- COMMENT ERROR -->
+
+        <div
+          *ngIf="commentError()"
+          class="error-message">
+
+          {{ commentError() }}
+
+        </div>
+
+
+        <!-- LOADING COMMENTS -->
+
+        <div
+          *ngIf="isLoadingComments()"
+          class="comments-loading">
+
+          Loading comments...
+
+        </div>
+
+
+        <!-- COMMENTS -->
+
+        <div
+          *ngIf="!isLoadingComments()"
+          class="comment-list">
+
+
+          <div
+            *ngFor="let c of comments()"
+            class="comment">
+
+            <div class="comment-header">
+
+              <strong>
+                {{ c.author }}
+              </strong>
+
+              <span>
+                {{ c.createdAt | date:'short' }}
+              </span>
+
+            </div>
+
+            <p>
+              {{ c.text }}
+            </p>
+
+          </div>
+
+
+          <div
+            *ngIf="comments().length === 0"
+            class="no-comments">
+
+            No comments yet.
+
+          </div>
+
+        </div>
+
+
+        <!-- COMMENT FORM -->
+
+        <form
+          (ngSubmit)="postComment()"
+          class="comment-form">
+
+
+          <div class="field">
+
+            <label for="author">
+              Your name
+            </label>
+
+            <input
+              id="author"
+              type="text"
+              [(ngModel)]="newComment.author"
+              name="author"
+              placeholder="Enter your name"
+              required />
+
+          </div>
+
+
+          <div class="field">
+
+            <label for="commentText">
+              Comment
+            </label>
+
+            <textarea
+              id="commentText"
+              [(ngModel)]="newComment.text"
+              name="text"
+              rows="4"
+              placeholder="Add a comment..."
+              required>
+            </textarea>
+
+          </div>
+
+
+          <div class="comment-actions">
+
+            <button
+              type="submit"
+              class="submit-comment-btn"
+              [disabled]="isPostingComment()">
+
+              {{
+                isPostingComment()
+                  ? 'Posting...'
+                  : 'Add comment'
+              }}
+
+            </button>
+
+          </div>
+
+        </form>
+
+      </section>
+
+    </ng-container>
+
+  </div>
+
 </div>

@@ -1,50 +1,627 @@
-.ticket-form-container {
-  max-width: 500px;
-  margin: 2rem auto;
-  padding: 1.5rem;
-  border: 1px solid #ddd;
-  border-radius: 8px;
+/* =========================================================
+   PAGE
+   ========================================================= */
+
+.ticket-page {
+  min-height: 100vh;
+  background: #f7f8fc;
+  padding: 36px 20px 60px;
+  color: #172033;
 }
 
-.field {
-  margin-bottom: 1rem;
 
-  label {
-    display: block;
-    margin-bottom: 0.25rem;
-    font-weight: 600;
-  }
+/* =========================================================
+   HEADER
+   ========================================================= */
 
-  input, textarea {
-    width: 100%;
-    padding: 0.5rem;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    font-family: inherit;
-    box-sizing: border-box;
-  }
+.page-header {
+  width: min(760px, 100%);
+  margin: 0 auto 28px;
+  text-align: center;
 }
 
-button {
-  padding: 0.6rem 1.2rem;
-  background: #2563eb;
-  color: white;
-  border: none;
-  border-radius: 4px;
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 25px;
+
+  border: 0;
+  background: transparent;
+
+  color: #667085;
+  font-size: 13px;
+  font-weight: 600;
+
   cursor: pointer;
 
-  &:disabled {
-    background: #93c5fd;
-    cursor: not-allowed;
+  transition: color 0.18s ease;
+}
+
+.back-link:hover {
+  color: #315bea;
+}
+
+.back-link span {
+  font-size: 18px;
+}
+
+.eyebrow {
+  margin: 0 0 8px;
+
+  color: #315bea;
+  font-size: 11px;
+  font-weight: 750;
+
+  letter-spacing: 1.5px;
+}
+
+.page-header h1 {
+  margin: 0;
+
+  color: #172033;
+
+  font-size: 32px;
+  line-height: 1.15;
+  font-weight: 750;
+
+  letter-spacing: -0.7px;
+}
+
+.subtitle {
+  max-width: 600px;
+  margin: 9px auto 0;
+
+  color: #667085;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+
+/* =========================================================
+   FORM CARD
+   ========================================================= */
+
+.form-card {
+  width: min(760px, 100%);
+  margin: 0 auto;
+
+  padding: 34px 38px;
+
+  border: 1px solid #e4e7ec;
+  border-radius: 16px;
+
+  background: #ffffff;
+
+  box-shadow:
+    0 6px 25px rgba(16, 24, 40, 0.055);
+}
+
+
+/* =========================================================
+   FORM HEADER
+   ========================================================= */
+
+.form-header {
+  padding-bottom: 25px;
+  margin-bottom: 26px;
+
+  border-bottom: 1px solid #eef0f3;
+}
+
+.form-label {
+  margin: 0 0 7px;
+
+  color: #315bea;
+
+  font-size: 10px;
+  font-weight: 750;
+
+  letter-spacing: 1.2px;
+}
+
+.form-header h2 {
+  margin: 0;
+
+  color: #172033;
+
+  font-size: 21px;
+  font-weight: 700;
+}
+
+.form-header p:last-child {
+  max-width: 620px;
+
+  margin: 8px 0 0;
+
+  color: #667085;
+
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+
+/* =========================================================
+   FORM
+   ========================================================= */
+
+.field {
+  margin-bottom: 23px;
+}
+
+.field label {
+  display: block;
+
+  margin-bottom: 8px;
+
+  color: #344054;
+
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.field label span {
+  color: #d92d20;
+}
+
+
+/* =========================================================
+   LABEL ROW
+   ========================================================= */
+
+.label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 15px;
+
+  margin-bottom: 8px;
+}
+
+.label-row label {
+  margin-bottom: 0;
+}
+
+.label-row small {
+  color: #98a2b3;
+  font-size: 11px;
+}
+
+
+/* =========================================================
+   INPUTS
+   ========================================================= */
+
+.field input,
+.field textarea {
+  width: 100%;
+  box-sizing: border-box;
+
+  border: 1px solid #dfe3ea;
+  border-radius: 9px;
+
+  outline: none;
+
+  background: #ffffff;
+  color: #172033;
+
+  font-family: inherit;
+  font-size: 13px;
+
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    background 0.18s ease;
+}
+
+.field input {
+  height: 45px;
+  padding: 0 13px;
+}
+
+.field textarea {
+  min-height: 150px;
+  padding: 13px;
+
+  resize: vertical;
+  line-height: 1.55;
+}
+
+.field input::placeholder,
+.field textarea::placeholder {
+  color: #98a2b3;
+}
+
+.field input:focus,
+.field textarea:focus {
+  border-color: #315bea;
+
+  box-shadow:
+    0 0 0 3px rgba(49, 91, 234, 0.09);
+}
+
+.field input:hover,
+.field textarea:hover {
+  border-color: #c7ccd6;
+}
+
+
+/* =========================================================
+   VALIDATION
+   ========================================================= */
+
+.field-error {
+  display: block;
+
+  margin-top: 6px;
+
+  color: #b42318;
+  font-size: 11px;
+}
+
+
+/* =========================================================
+   AI INFORMATION
+   ========================================================= */
+
+.submission-note {
+  display: flex;
+  align-items: flex-start;
+
+  gap: 12px;
+
+  margin: 7px 0 25px;
+  padding: 15px 16px;
+
+  border: 1px solid #dfe5ff;
+  border-radius: 10px;
+
+  background: #f7f8ff;
+}
+
+.note-icon {
+  width: 27px;
+  height: 27px;
+
+  flex: 0 0 27px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 50%;
+
+  background: #e8edff;
+  color: #315bea;
+
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.submission-note strong {
+  display: block;
+
+  margin-bottom: 3px;
+
+  color: #344054;
+
+  font-size: 12px;
+}
+
+.submission-note p {
+  margin: 0;
+
+  color: #667085;
+
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+
+/* =========================================================
+   SUCCESS / ERROR
+   ========================================================= */
+
+.success-message,
+.error-message {
+  display: flex;
+  align-items: flex-start;
+
+  gap: 11px;
+
+  margin-bottom: 20px;
+  padding: 13px 14px;
+
+  border-radius: 9px;
+}
+
+.success-message {
+  border: 1px solid #abefc6;
+  background: #f0fdf4;
+  color: #027a48;
+}
+
+.error-message {
+  border: 1px solid #f1b8bd;
+  background: #fff5f5;
+  color: #b42318;
+}
+
+.message-mark {
+  width: 24px;
+  height: 24px;
+
+  flex: 0 0 24px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 50%;
+
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.success-message .message-mark {
+  background: #dcfae6;
+}
+
+.error-message .message-mark {
+  background: #fee4e2;
+}
+
+.success-message strong,
+.error-message strong {
+  display: block;
+
+  margin-bottom: 2px;
+
+  font-size: 12px;
+}
+
+.success-message p,
+.error-message p {
+  margin: 0;
+
+  font-size: 11px;
+}
+
+
+/* =========================================================
+   ACTIONS
+   ========================================================= */
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+
+  gap: 10px;
+
+  padding-top: 22px;
+
+  border-top: 1px solid #eef0f3;
+}
+
+.cancel-btn,
+.submit-btn {
+  height: 42px;
+
+  padding: 0 19px;
+
+  border-radius: 9px;
+
+  font-family: inherit;
+
+  font-size: 12px;
+  font-weight: 650;
+
+  cursor: pointer;
+
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    transform 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+
+/* Cancel */
+
+.cancel-btn {
+  border: 1px solid #dfe3ea;
+
+  background: #ffffff;
+  color: #475467;
+}
+
+.cancel-btn:hover {
+  background: #f8f9fb;
+  border-color: #cfd4dc;
+}
+
+
+/* Submit */
+
+.submit-btn {
+  min-width: 125px;
+
+  border: 1px solid #315bea;
+
+  background: #315bea;
+  color: #ffffff;
+
+  box-shadow:
+    0 4px 12px rgba(49, 91, 234, 0.18);
+}
+
+.submit-btn:hover:not(:disabled) {
+  background: #264ed8;
+
+  transform: translateY(-1px);
+
+  box-shadow:
+    0 7px 17px rgba(49, 91, 234, 0.23);
+}
+
+.submit-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 700px) {
+
+  .ticket-page {
+    padding: 24px 15px 40px;
+  }
+
+  .page-header {
+    margin-bottom: 22px;
+  }
+
+  .page-header h1 {
+    font-size: 27px;
+  }
+
+  .subtitle {
+    font-size: 13px;
+  }
+
+  .form-card {
+    padding: 25px 20px;
+    border-radius: 13px;
+  }
+
+  .form-header h2 {
+    font-size: 19px;
+  }
+
+  .label-row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .form-actions {
+    flex-direction: column-reverse;
+  }
+
+  .cancel-btn,
+  .submit-btn {
+    width: 100%;
   }
 }
-
-.success {
-  color: #16a34a;
-  margin-top: 0.75rem;
+.ticket-page {
+  min-height: 100vh;
+  background: #f7f8fc;
+  padding: 30px 40px 60px;
+  color: #172033;
 }
 
-.error {
-  color: #dc2626;
-  margin-top: 0.75rem;
+
+/* =========================================================
+   BACK BUTTON
+   ========================================================= */
+
+.page-top {
+  width: min(1360px, 100%);
+  margin: 0 auto 24px;
+}
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+
+  padding: 0;
+
+  border: 0;
+  background: transparent;
+
+  color: #667085;
+
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition: color 0.18s ease;
+}
+
+.back-link:hover {
+  color: #315bea;
+}
+
+.back-link span {
+  font-size: 19px;
+  line-height: 1;
+}
+
+
+/* =========================================================
+   FORM CARD
+   ========================================================= */
+
+.form-card {
+  width: min(760px, 100%);
+  margin: 0 auto;
+
+  padding: 34px 38px;
+
+  border: 1px solid #e4e7ec;
+  border-radius: 16px;
+
+  background: #ffffff;
+
+  box-shadow:
+    0 6px 25px rgba(16, 24, 40, 0.055);
+}
+
+
+/* =========================================================
+   FORM HEADER
+   ========================================================= */
+
+.form-header {
+  margin-bottom: 27px;
+  padding-bottom: 22px;
+
+  border-bottom: 1px solid #eef0f3;
+}
+
+.form-label {
+  margin: 0 0 7px;
+
+  color: #315bea;
+
+  font-size: 10px;
+  font-weight: 750;
+
+  letter-spacing: 1.2px;
+}
+
+.form-header h2 {
+  margin: 0;
+
+  color: #172033;
+
+  font-size: 21px;
+  font-weight: 700;
+}
+
+.form-header p:last-child {
+  margin: 7px 0 0;
+
+  color: #667085;
+
+  font-size: 13px;
 }

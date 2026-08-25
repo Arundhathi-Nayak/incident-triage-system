@@ -1,34 +1,51 @@
-
-
 using Microsoft.EntityFrameworkCore;
+using TriageApi.Services;
+using TriageApi.Services.Interfaces;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-
+// Controllers
 builder.Services.AddControllers();
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+
+// OpenAPI / Swagger
 builder.Services.AddOpenApi();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// Database
 builder.Services.AddDbContext<TriageDbContext>(options =>
-options.UseSqlServer(builder.Configuration.GetConnectionString("Default")));
+    options.UseSqlServer(
+        builder.Configuration.GetConnectionString("Default")));
 
+// Application Services
+builder.Services.AddScoped<ITicketService, TicketService>();
+builder.Services.AddScoped<ICommentService, CommentService>();
+builder.Services.AddScoped<IClassificationService, ClassificationService>();
+
+// CORS
 builder.Services.AddCors(options =>
-   options.AddPolicy("AllowAngular", policy =>
-     policy.WithOrigins("http://localhost:4200")
-     .AllowAnyHeader()
-     .AllowAnyMethod()
-     ));
-
-builder.Services.AddHttpClient("ClassificationService", client =>
 {
-    client.BaseAddress = new Uri("http://localhost:8000/");
+    options.AddPolicy("AllowAngular", policy =>
+    {
+        policy
+            .WithOrigins("http://localhost:4200")
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
 });
+
+// Classification API
+builder.Services.AddHttpClient(
+    "ClassificationService",
+    client =>
+    {
+        client.BaseAddress =
+            new Uri("http://localhost:8000/");
+    });
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// HTTP pipeline
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
@@ -37,7 +54,9 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors("AllowAngular");
-//app.UseHttpsRedirection();
+
+// Keep disabled for your current local setup.
+// app.UseHttpsRedirection();
 
 app.UseAuthorization();
 

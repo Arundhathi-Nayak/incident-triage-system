@@ -1,162 +1,177 @@
-using System.Text;
-using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using TriageApi.Dto;
-using TriageApi.Models;
+using TriageApi.Services.Interfaces;
 
 [ApiController]
 [Route("api/[controller]")]
 public class TicketsController : ControllerBase
 {
-    private readonly TriageDbContext _db;
-    private readonly IHttpClientFactory _httpClientFactory;
-    public TicketsController(TriageDbContext db, IHttpClientFactory httpClientFactory)
+    private readonly ITicketService _ticketService;
+
+    public TicketsController(
+        ITicketService ticketService)
     {
-        _db = db;
-        _httpClientFactory = httpClientFactory;
+        _ticketService = ticketService;
     }
 
+    // GET: /api/tickets
     [HttpGet]
-    public async Task<ActionResult<List<Ticket>>> GetAll() =>
-     await _db.Tickets.OrderByDescending(t => t.CreatedAt).ToListAsync();
+    public async Task<ActionResult<PagedResultDto<TicketListItemDto>>>
+        GetAll([FromQuery] TicketQueryDto query)
+    {
+        var result =
+            await _ticketService.GetTicketsAsync(query);
 
+        return Ok(result);
+    }
+
+    // GET: /api/tickets/statistics
+    [HttpGet("statistics")]
+    public async Task<ActionResult<TicketStatisticsDto>>
+        GetStatistics()
+    {
+        var result =
+            await _ticketService.GetStatisticsAsync();
+
+        return Ok(result);
+    }
+
+    // GET: /api/tickets/INC10001
     [HttpGet("{incidentId}")]
-    public async Task<ActionResult<Ticket>> GetById(string incidentId)
+    public async Task<ActionResult<TicketDetailsDto>>
+        GetById(string incidentId)
     {
-        var ticket = await _db.Tickets.FirstOrDefaultAsync(t => t.IncidentId == incidentId);
-        return ticket is null ? NotFound() : ticket;
-    }
+        var ticket =
+            await _ticketService.GetByIdAsync(incidentId);
 
-    [HttpPost]
-    public async Task<ActionResult<Ticket>> Create(CreateTicketDto dto)
-    {
-        var ticket = new Ticket
-        {
-            Title = dto.Title,
-            Description = dto.Description,
-            CreatedBy = dto.CreatedBy
-        };
-
-        _db.Tickets.Add(ticket);
-        await _db.SaveChangesAsync();
-        ticket.IncidentId = $"INC{10000 + ticket.Id}";
-        await _db.SaveChangesAsync();
-        var (success, errorMessage) = await TryClassifyAsync(ticket);
-        if (!success)
-        {
-            // Ticket still exists and was created successfully; just log the classification failure
-            Console.WriteLine($"Auto-classification failed for {ticket.IncidentId}: {errorMessage}");
-        }
-
-        return CreatedAtAction(nameof(GetById), new { incidentId = ticket.IncidentId }, ticket);
-    }
-
-    [HttpPut("{incidentId}")]
-    public async Task<ActionResult> Update(string incidentId, Ticket updated)
-    {
-        var existing = await _db.Tickets.FirstOrDefaultAsync(t => t.IncidentId == incidentId);
-        if (existing is null) return NotFound();
-
-        if (!TicketOptions.Categories.Contains(updated.Category))
-            return BadRequest($"Invalid category. Must be one of: {string.Join(", ", TicketOptions.Categories)}");
-        if (!TicketOptions.Severities.Contains(updated.Severity))
-            return BadRequest($"Invalid severity. Must be one of: {string.Join(", ", TicketOptions.Severities)}");
-        if (!TicketOptions.Statuses.Contains(updated.Status))
-            return BadRequest($"Invalid status. Must be one of: {string.Join(", ", TicketOptions.Statuses)}");
-        if (!TicketOptions.AssignedTeams.Contains(updated.AssignedTeam))
-            return BadRequest($"Invalid team. Must be one of: {string.Join(", ", TicketOptions.AssignedTeams)}");
-
-        existing.Title = updated.Title;
-        existing.Description = updated.Description;
-        existing.Category = updated.Category;
-        existing.Severity = updated.Severity;
-        existing.Status = updated.Status;
-        existing.AssignedTeam = updated.AssignedTeam;
-        existing.ResolvedAt = updated.ResolvedAt;
-        existing.RootCauseCategory = updated.RootCauseCategory;
-        existing.Resolution = updated.Resolution;
-        existing.Summary = updated.Summary;
-
-        await _db.SaveChangesAsync();
-        return NoContent();
-    }
-
-    [HttpDelete("{incidentId}")]
-    public async Task<IActionResult> Delete(string incidentId)
-    {
-        var ticket = await _db.Tickets.FirstOrDefaultAsync(t => t.IncidentId == incidentId);
-        if (ticket is null) return NotFound();
-        _db.Tickets.Remove(ticket);
-        await _db.SaveChangesAsync();
-        return NoContent();
-    }
-    // [HttpPost("{id}/classify")]
-    // public async Task<ActionResult<Ticket>> Classify(int id)
-    private async Task<(bool Success, string? ErrorMessage)> TryClassifyAsync(Ticket ticket)
-    {
-        var client = _httpClientFactory.CreateClient("ClassificationService");
-
-        var requestBody = new ClassificationRequest
-        {
-            Title = ticket.Title,
-            Description = ticket.Description
-        };
-
-        var jsonOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
-        var json = JsonSerializer.Serialize(requestBody, jsonOptions);
-        var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-        HttpResponseMessage response;
-        try
-        {
-            response = await client.PostAsync("classify", content);
-        }
-        catch (HttpRequestException)
-        {
-            return (false, "Classification service is unreachable. Is it running on port 8000?");
-        }
-
-        if (!response.IsSuccessStatusCode)
-        {
-            return (false, "Classification service returned an error.");
-        }
-
-        var responseJson = await response.Content.ReadAsStringAsync();
-        var result = JsonSerializer.Deserialize<ClassificationResponse>(
-            responseJson,
-            new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-
-        if (result is null) return (false, "Could not parse classification response.");
-
-        ticket.Category = result.Category;
-        ticket.Severity = result.Severity;
-        ticket.AssignedTeam = result.AssignedTeam;
-        ticket.Summary = result.Summary;
-
-        await _db.SaveChangesAsync();
-
-        return (true, null);
-    }
-
-    [HttpPost("{incidentId}/resolve")]
-    public async Task<ActionResult<Ticket>> Resolve(string incidentId, ResolveTicketDto dto)
-    {
-        var ticket = await _db.Tickets.FirstOrDefaultAsync(t => t.IncidentId == incidentId);
-        if (ticket is null) return NotFound();
-
-        if (ticket.Status == "Resolved")
-            return BadRequest("This ticket is already resolved.");
-
-        ticket.Status = "Resolved";
-        ticket.ResolvedAt = DateTime.UtcNow;
-        ticket.RootCauseCategory = dto.RootCauseCategory;
-        ticket.RootCause = dto.RootCause;
-        ticket.Resolution = dto.Resolution;
-
-        await _db.SaveChangesAsync();
+        if (ticket is null)
+            return NotFound(
+                $"Ticket {incidentId} not found.");
 
         return Ok(ticket);
     }
 
+    // POST: /api/tickets
+    [HttpPost]
+    public async Task<ActionResult<TicketDetailsDto>>
+        Create(CreateTicketDto dto)
+    {
+        if (string.IsNullOrWhiteSpace(dto.Title))
+            return BadRequest("Title is required.");
+
+        if (string.IsNullOrWhiteSpace(dto.Description))
+            return BadRequest("Description is required.");
+
+        if (string.IsNullOrWhiteSpace(dto.CreatedBy))
+            return BadRequest("CreatedBy is required.");
+
+        var ticket =
+            await _ticketService.CreateAsync(dto);
+
+        return CreatedAtAction(
+            nameof(GetById),
+            new { incidentId = ticket.IncidentId },
+            ticket);
+    }
+
+    // PUT: /api/tickets/INC10001
+    [HttpPut("{incidentId}")]
+    public async Task<IActionResult> Update(
+        string incidentId,
+        UpdateTicketDto dto)
+    {
+        try
+        {
+            var updated =
+                await _ticketService.UpdateAsync(
+                    incidentId,
+                    dto);
+
+            if (!updated)
+                return NotFound(
+                    $"Ticket {incidentId} not found.");
+
+            return NoContent();
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+
+    // POST: /api/tickets/INC10001/resolve
+    [HttpPost("{incidentId}/resolve")]
+    public async Task<ActionResult<TicketDetailsDto>>
+        Resolve(
+            string incidentId,
+            ResolveTicketDto dto)
+    {
+        try
+        {
+            var ticket =
+                await _ticketService.ResolveAsync(
+                    incidentId,
+                    dto);
+
+            if (ticket is null)
+                return NotFound(
+                    $"Ticket {incidentId} not found.");
+
+            return Ok(ticket);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+
+    // PUT: /api/tickets/INC10001/resolution
+    [HttpPut("{incidentId}/resolution")]
+    public async Task<ActionResult<TicketDetailsDto>>
+        UpdateResolution(
+            string incidentId,
+            UpdateResolutionDto dto)
+    {
+        try
+        {
+            var ticket =
+                await _ticketService.UpdateResolutionAsync(
+                    incidentId,
+                    dto);
+
+            if (ticket is null)
+                return NotFound(
+                    $"Ticket {incidentId} not found.");
+
+            return Ok(ticket);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+
+    // DELETE: /api/tickets/INC10001
+    [HttpDelete("{incidentId}")]
+    public async Task<IActionResult> Delete(
+        string incidentId)
+    {
+        var deleted =
+            await _ticketService.DeleteAsync(
+                incidentId);
+
+        if (!deleted)
+            return NotFound(
+                $"Ticket {incidentId} not found.");
+
+        return NoContent();
+    }
 }

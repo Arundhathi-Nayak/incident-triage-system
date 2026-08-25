@@ -19,32 +19,54 @@ public class TriageDbContext : DbContext
         base.OnModelCreating(modelBuilder);
 
         // ==========================================
+        // INCIDENT NUMBER SEQUENCE
+        // ==========================================
+
+        modelBuilder.HasSequence<int>("IncidentNumberSequence")
+            .StartsAt(10001)
+            .IncrementsBy(1);
+
+        // ==========================================
         // TICKET
         // ==========================================
 
-        modelBuilder.Entity<Ticket>()
-            .HasKey(t => t.IncidentId);
+        modelBuilder.Entity<Ticket>(entity =>
+        {
+            // Technical primary key
+            entity.HasKey(t => t.Id);
 
-        modelBuilder.Entity<Ticket>()
-            .Property(t => t.IncidentId)
-            .IsRequired();
+            entity.Property(t => t.Id)
+                .ValueGeneratedOnAdd();
 
-        // Id remains SQL Server identity,
-        // but is NOT the primary key.
-        modelBuilder.Entity<Ticket>()
-            .Property(t => t.Id)
-            .ValueGeneratedOnAdd();
+            // Business identifier
+            entity.Property(t => t.IncidentId)
+                .IsRequired()
+                .HasMaxLength(20)
+                .HasDefaultValueSql(
+                    "'INC' + CONVERT(varchar(20), NEXT VALUE FOR IncidentNumberSequence)"
+                );
+
+            // IncidentId must be unique
+            entity.HasAlternateKey(t => t.IncidentId);
+        });
 
         // ==========================================
         // COMMENT
         // ==========================================
 
-        modelBuilder.Entity<Comment>()
-            .HasKey(c => c.Id);
+        modelBuilder.Entity<Comment>(entity =>
+        {
+            entity.HasKey(c => c.Id);
 
-        modelBuilder.Entity<Comment>()
-            .Property(c => c.Id)
-            .ValueGeneratedOnAdd();
+            entity.Property(c => c.Id)
+                .ValueGeneratedOnAdd();
+
+            entity.Property(c => c.IncidentId)
+                .IsRequired()
+                .HasMaxLength(20);
+
+            entity.HasIndex(c => c.IncidentId);
+        });
 
         // ==========================================
         // TICKET → COMMENTS
@@ -56,9 +78,5 @@ public class TriageDbContext : DbContext
             .HasForeignKey(c => c.IncidentId)
             .HasPrincipalKey(t => t.IncidentId)
             .OnDelete(DeleteBehavior.Cascade);
-
-        // Useful for comment lookup
-        modelBuilder.Entity<Comment>()
-            .HasIndex(c => c.IncidentId);
     }
 }

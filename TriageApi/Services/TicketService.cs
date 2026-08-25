@@ -201,31 +201,27 @@ public class TicketService : ITicketService
             })
             .FirstOrDefaultAsync();
     }
-
     public async Task<TicketDetailsDto> CreateAsync(
-        CreateTicketDto dto)
+    CreateTicketDto dto)
     {
         var ticket = new Ticket
         {
             Title = dto.Title.Trim(),
             Description = dto.Description.Trim(),
             CreatedBy = dto.CreatedBy.Trim(),
+
             Status = "New",
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
+
+            // DO NOT set IncidentId here.
+            // SQL Server will generate INC10001, INC10002, etc.
         };
 
         _db.Tickets.Add(ticket);
 
-        // First save:
-        // SQL Server generates the numeric Id.
-        await _db.SaveChangesAsync();
-
-        // Generate business identifier from Id.
-        ticket.IncidentId =
-            $"INC{10000 + ticket.Id}";
-
-        // Second save:
-        // IncidentId is now stored as the primary key.
+        // SQL Server generates:
+        // Id = 1
+        // IncidentId = INC10001
         await _db.SaveChangesAsync();
 
         // Auto-classification
@@ -236,8 +232,6 @@ public class TicketService : ITicketService
 
         return MapToDetails(ticket);
     }
-
-
     public async Task<bool> UpdateAsync(
         string incidentId,
         UpdateTicketDto dto)

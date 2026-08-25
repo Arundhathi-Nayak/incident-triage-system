@@ -37,7 +37,7 @@ public class TicketsController : ControllerBase
     }
 
     // GET: /api/tickets/INC10001
-    [HttpGet("{incidentId}")]
+    [HttpGet("{incidentId}", Name = "GetTicketByIncidentId")]
     public async Task<ActionResult<TicketDetailsDto>>
         GetById(string incidentId)
     {
@@ -68,12 +68,11 @@ public class TicketsController : ControllerBase
         var ticket =
             await _ticketService.CreateAsync(dto);
 
-        return CreatedAtAction(
-            nameof(GetById),
+        return CreatedAtRoute(
+            "GetTicketByIncidentId",
             new { incidentId = ticket.IncidentId },
             ticket);
     }
-
     // PUT: /api/tickets/INC10001
     [HttpPut("{incidentId}")]
     public async Task<IActionResult> Update(

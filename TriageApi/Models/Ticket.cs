@@ -4,7 +4,7 @@ public class Ticket
 {
     public int Id { get; set; }
 
-    public string IncidentId { get; set; } = string.Empty;
+    public string IncidentId { get; set; } = null!;
 
     public string Title { get; set; } = string.Empty;
 

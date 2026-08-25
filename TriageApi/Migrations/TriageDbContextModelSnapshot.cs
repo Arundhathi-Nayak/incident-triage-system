@@ -21,6 +21,9 @@ namespace TriageApi.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.HasSequence<int>("IncidentNumberSequence")
+                .StartsAt(10001L);
+
             modelBuilder.Entity("TriageApi.Models.Comment", b =>
                 {
                     b.Property<int>("Id")
@@ -38,7 +41,8 @@ namespace TriageApi.Migrations
 
                     b.Property<string>("IncidentId")
                         .IsRequired()
-                        .HasColumnType("nvarchar(450)");
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
 
                     b.Property<string>("Text")
                         .IsRequired()
@@ -56,8 +60,11 @@ namespace TriageApi.Migrations
 
             modelBuilder.Entity("TriageApi.Models.Ticket", b =>
                 {
-                    b.Property<string>("IncidentId")
-                        .HasColumnType("nvarchar(450)");
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("AssignedTeam")
                         .IsRequired()
@@ -78,11 +85,12 @@ namespace TriageApi.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("Id")
+                    b.Property<string>("IncidentId")
+                        .IsRequired()
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasDefaultValueSql("'INC' + CONVERT(varchar(20), NEXT VALUE FOR IncidentNumberSequence)");
 
                     b.Property<string>("Resolution")
                         .HasColumnType("nvarchar(max)");
@@ -111,7 +119,7 @@ namespace TriageApi.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.HasKey("IncidentId");
+                    b.HasKey("Id");
 
                     b.ToTable("Tickets");
                 });
@@ -121,6 +129,7 @@ namespace TriageApi.Migrations
                     b.HasOne("TriageApi.Models.Ticket", "Ticket")
                         .WithMany("Comments")
                         .HasForeignKey("IncidentId")
+                        .HasPrincipalKey("IncidentId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 

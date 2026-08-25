@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import {
   Component,
   OnInit,
+  OnDestroy,
   computed,
   signal
 } from '@angular/core';
@@ -11,8 +12,21 @@ import {
 import {
   RouterLink
 } from '@angular/router';
+import {
+  Subject,
+  Subscription,
+  debounceTime,
+  distinctUntilChanged
+} from 'rxjs';
 
-import { Ticket } from '../../models/ticket';
+import {
+  PagedResult,
+  TicketListItem,
+  TicketOptions,
+  TicketQuery,
+  TicketStatistics
+} from '../../models/ticket';
+
 import { TicketService } from '../../services/ticket-service';
 
 @Component({
@@ -26,19 +40,42 @@ import { TicketService } from '../../services/ticket-service';
   templateUrl: './ticket-dashboard.html',
   styleUrl: './ticket-dashboard.scss'
 })
-export class TicketDashboard implements OnInit {
+export class TicketDashboard implements OnInit, OnDestroy {
 
   // =========================================================
   // DATA
   // =========================================================
 
-  tickets = signal<Ticket[]>([]);
+  readonly Math = Math;
+
+  tickets = signal<TicketListItem[]>([]);
 
   isLoading = signal<boolean>(true);
 
   errorMessage = signal<string>('');
 
+  // =========================================================
+  // SERVER PAGINATION
+  // =========================================================
+
+  currentPage = signal<number>(1);
+
+  pageSize = signal<number>(10);
+
+  totalCount = signal<number>(0);
+
+  totalPages = signal<number>(0);
+
+  // =========================================================
+  // SEARCH
+  // =========================================================
+
   searchTerm = signal<string>('');
+
+  private searchSubject =
+    new Subject<string>();
+
+  private searchSubscription?: Subscription;
 
   // =========================================================
   // FILTER PANEL
@@ -55,103 +92,66 @@ export class TicketDashboard implements OnInit {
   selectedTeam = '';
 
   // =========================================================
-  // FILTER OPTIONS
+  // OPTIONS
   // =========================================================
 
-  statuses: string[] = [
-    'Open',
-    'In Progress',
-    'Resolved'
-  ];
+  statuses: string[] = [];
 
-  severities: string[] = [
-    'Low',
-    'Medium',
-    'High',
-    'Critical'
-  ];
+  severities: string[] = [];
+
+  categories = signal<string[]>([]);
+
+  teams = signal<string[]>([]);
 
   // =========================================================
-  // DYNAMIC CATEGORY OPTIONS
+  // SORTING
   // =========================================================
 
-  categories = computed(() => {
+  sortBy = signal<string>('createdAt');
 
-    const values = this.tickets()
-      .map(ticket => ticket.category)
-      .filter(
-        (category): category is string =>
-          !!category && category.trim().length > 0
-      );
+  sortDirection = signal<'asc' | 'desc'>('desc');
 
-    return [...new Set(values)].sort();
+  // =========================================================
+  // STATISTICS
+  // =========================================================
 
+  statistics = signal<TicketStatistics>({
+    total: 0,
+
+    new: 0,
+    assigned: 0,
+    userPending: 0,
+    resolved: 0,
+
+    p1: 0,
+    p2: 0,
+    p3: 0,
+    p4: 0,
+
+    byCategory: {},
+    byTeam: {}
   });
 
   // =========================================================
-  // DYNAMIC TEAM OPTIONS
+  // STATISTICS COMPUTED VALUES
   // =========================================================
 
-  teams = computed(() => {
+  totalTickets = computed(() =>
+    this.statistics().total
+  );
 
-    const values = this.tickets()
-      .map(ticket => ticket.assignedTeam)
-      .filter(
-        (team): team is string =>
-          !!team && team.trim().length > 0
-      );
+  resolvedTickets = computed(() =>
+    this.statistics().resolved
+  );
 
-    return [...new Set(values)].sort();
+  openTickets = computed(() =>
+    this.statistics().new
+  );
 
-  });
-
-  // =========================================================
-  // TOTAL
-  // =========================================================
-
-  totalTickets = computed(() => {
-    return this.tickets().length;
-  });
-
-  // =========================================================
-  // OPEN
-  // =========================================================
-
-  openTickets = computed(() => {
-
-    return this.tickets().filter(ticket =>
-      this.normalize(ticket.status) === 'open'
-    ).length;
-
-  });
-
-  // =========================================================
-  // IN PROGRESS
-  // =========================================================
-
-  inProgressTickets = computed(() => {
-
-    return this.tickets().filter(ticket =>
-      this.normalize(ticket.status) === 'in progress'
-    ).length;
-
-  });
-
-  // =========================================================
-  // RESOLVED
-  // =========================================================
-
-  resolvedTickets = computed(() => {
-
-    return this.tickets().filter(ticket =>
-      this.normalize(ticket.status) === 'resolved'
-    ).length;
-
-  });
-
-  // =========================================================
-  // RESOLUTION PERCENTAGE
-  // =========================================================
+  inProgressTickets = computed(() =>
+    this.statistics().assigned +
+    this.statistics().userPending
+  );
 
   resolvedPercentage = computed(() => {
 
@@ -164,7 +164,6 @@ export class TicketDashboard implements OnInit {
     return Math.round(
       (this.resolvedTickets() / total) * 100
     );
-
   });
 
   // =========================================================
@@ -192,108 +191,46 @@ export class TicketDashboard implements OnInit {
     }
 
     return count;
-
   });
 
   // =========================================================
-  // FILTERED TICKETS
+  // PAGINATION DISPLAY
   // =========================================================
 
-  filteredTickets = computed(() => {
+  pageNumbers = computed(() => {
 
-    const term = this.searchTerm()
-      .trim()
-      .toLowerCase();
+    const total = this.totalPages();
+    const current = this.currentPage();
 
-    const status = this.selectedStatus
-      .trim()
-      .toLowerCase();
-
-    const severity = this.selectedSeverity
-      .trim()
-      .toLowerCase();
-
-    const category = this.selectedCategory
-      .trim()
-      .toLowerCase();
-
-    const team = this.selectedTeam
-      .trim()
-      .toLowerCase();
-
-    return this.tickets().filter(ticket => {
-
-      // -----------------------------------------
-      // SEARCH
-      // -----------------------------------------
-
-      const matchesSearch =
-        !term ||
-
-        this.safeString(ticket.incidentId)
-          .toLowerCase()
-          .includes(term) ||
-
-        this.safeString(ticket.title)
-          .toLowerCase()
-          .includes(term) ||
-
-        this.safeString(ticket.createdBy)
-          .toLowerCase()
-          .includes(term) ||
-
-        this.safeString(ticket.category)
-          .toLowerCase()
-          .includes(term) ||
-
-        this.safeString(ticket.assignedTeam)
-          .toLowerCase()
-          .includes(term);
-
-      // -----------------------------------------
-      // STATUS
-      // -----------------------------------------
-
-      const matchesStatus =
-        !status ||
-        this.normalize(ticket.status) === status;
-
-      // -----------------------------------------
-      // SEVERITY
-      // -----------------------------------------
-
-      const matchesSeverity =
-        !severity ||
-        this.normalize(ticket.severity) === severity;
-
-      // -----------------------------------------
-      // CATEGORY
-      // -----------------------------------------
-
-      const matchesCategory =
-        !category ||
-        this.safeString(ticket.category)
-          .toLowerCase() === category;
-
-      // -----------------------------------------
-      // TEAM
-      // -----------------------------------------
-
-      const matchesTeam =
-        !team ||
-        this.safeString(ticket.assignedTeam)
-          .toLowerCase() === team;
-
-      return (
-        matchesSearch &&
-        matchesStatus &&
-        matchesSeverity &&
-        matchesCategory &&
-        matchesTeam
+    if (total <= 7) {
+      return Array.from(
+        { length: total },
+        (_, index) => index + 1
       );
+    }
 
-    });
+    const pages: number[] = [];
 
+    pages.push(1);
+
+    if (current > 4) {
+      pages.push(-1);
+    }
+
+    const start = Math.max(2, current - 1);
+    const end = Math.min(total - 1, current + 1);
+
+    for (let page = start; page <= end; page++) {
+      pages.push(page);
+    }
+
+    if (current < total - 3) {
+      pages.push(-1);
+    }
+
+    pages.push(total);
+
+    return pages;
   });
 
   // =========================================================
@@ -309,7 +246,112 @@ export class TicketDashboard implements OnInit {
   // =========================================================
 
   ngOnInit(): void {
+
+    this.setupSearch();
+
+    this.loadOptions();
+
+    this.loadStatistics();
+
     this.loadTickets();
+  }
+
+  // =========================================================
+  // DESTROY
+  // =========================================================
+
+  ngOnDestroy(): void {
+
+    this.searchSubscription?.unsubscribe();
+
+    this.searchSubject.complete();
+  }
+
+  // =========================================================
+  // SEARCH SETUP
+  // =========================================================
+
+  private setupSearch(): void {
+
+    this.searchSubscription =
+      this.searchSubject
+        .pipe(
+          debounceTime(400),
+          distinctUntilChanged()
+        )
+        .subscribe(search => {
+
+          this.searchTerm.set(search);
+
+          this.currentPage.set(1);
+
+          this.loadTickets();
+
+        });
+  }
+
+  // =========================================================
+  // LOAD OPTIONS
+  // =========================================================
+
+  loadOptions(): void {
+
+    this.ticketService
+      .getOptions()
+      .subscribe({
+
+        next: (options: TicketOptions) => {
+
+          this.statuses =
+            options.statuses ?? [];
+
+          this.severities =
+            options.severities ?? [];
+
+          this.categories.set(
+            options.categories ?? []
+          );
+
+          this.teams.set(
+            options.assignedTeams ?? []
+          );
+        },
+
+        error: error => {
+
+          console.error(
+            'Failed to load ticket options:',
+            error
+          );
+        }
+      });
+  }
+
+  // =========================================================
+  // LOAD STATISTICS
+  // =========================================================
+
+  loadStatistics(): void {
+
+    this.ticketService
+      .getStatistics()
+      .subscribe({
+
+        next: statistics => {
+
+          this.statistics.set(
+            statistics
+          );
+        },
+
+        error: error => {
+
+          console.error(
+            'Failed to load statistics:',
+            error
+          );
+        }
+      });
   }
 
   // =========================================================
@@ -322,35 +364,78 @@ export class TicketDashboard implements OnInit {
 
     this.errorMessage.set('');
 
-    this.ticketService.getAll().subscribe({
+    const query: TicketQuery = {
 
-      next: (tickets: Ticket[]) => {
+      page: this.currentPage(),
 
-        this.tickets.set(tickets ?? []);
+      pageSize: this.pageSize(),
 
-        this.isLoading.set(false);
+      search: this.searchTerm(),
 
-      },
+      status: this.selectedStatus,
 
-      error: (error) => {
+      severity: this.selectedSeverity,
 
-        console.error(
-          'Failed to load tickets:',
-          error
-        );
+      category: this.selectedCategory,
 
-        this.errorMessage.set(
-          'Failed to load incidents. Please try again.'
-        );
+      assignedTeam: this.selectedTeam,
 
-        this.tickets.set([]);
+      sortBy: this.sortBy(),
 
-        this.isLoading.set(false);
+      sortDirection: this.sortDirection()
+    };
 
-      }
+    this.ticketService
+      .getTickets(query)
+      .subscribe({
 
-    });
+        next: (
+          result: PagedResult<TicketListItem>
+        ) => {
 
+          this.tickets.set(
+            result.items ?? []
+          );
+
+          this.currentPage.set(
+            result.page
+          );
+
+          this.pageSize.set(
+            result.pageSize
+          );
+
+          this.totalCount.set(
+            result.totalCount
+          );
+
+          this.totalPages.set(
+            result.totalPages
+          );
+
+          this.isLoading.set(false);
+        },
+
+        error: error => {
+
+          console.error(
+            'Failed to load tickets:',
+            error
+          );
+
+          this.errorMessage.set(
+            'Failed to load incidents. Please try again.'
+          );
+
+          this.tickets.set([]);
+
+          this.totalCount.set(0);
+
+          this.totalPages.set(0);
+
+          this.isLoading.set(false);
+        }
+      });
   }
 
   // =========================================================
@@ -359,8 +444,22 @@ export class TicketDashboard implements OnInit {
 
   onSearchChange(value: string): void {
 
-    this.searchTerm.set(value ?? '');
+    this.searchSubject.next(
+      value ?? ''
+    );
+  }
 
+  // =========================================================
+  // APPLY FILTERS
+  // =========================================================
+
+  applyFilters(): void {
+
+    this.currentPage.set(1);
+
+    this.closeFilters();
+
+    this.loadTickets();
   }
 
   // =========================================================
@@ -372,13 +471,11 @@ export class TicketDashboard implements OnInit {
     this.showFilters.update(
       value => !value
     );
-
   }
 
   closeFilters(): void {
 
     this.showFilters.set(false);
-
   }
 
   // =========================================================
@@ -395,6 +492,9 @@ export class TicketDashboard implements OnInit {
 
     this.selectedTeam = '';
 
+    this.currentPage.set(1);
+
+    this.loadTickets();
   }
 
   // =========================================================
@@ -405,8 +505,110 @@ export class TicketDashboard implements OnInit {
 
     this.searchTerm.set('');
 
-    this.clearFilters();
+    this.selectedStatus = '';
 
+    this.selectedSeverity = '';
+
+    this.selectedCategory = '';
+
+    this.selectedTeam = '';
+
+    this.currentPage.set(1);
+
+    this.loadTickets();
+  }
+
+  // =========================================================
+  // PAGINATION
+  // =========================================================
+
+  goToPage(page: number): void {
+
+    if (
+      page < 1 ||
+      page > this.totalPages() ||
+      page === this.currentPage()
+    ) {
+      return;
+    }
+
+    this.currentPage.set(page);
+
+    this.loadTickets();
+  }
+
+  previousPage(): void {
+
+    this.goToPage(
+      this.currentPage() - 1
+    );
+  }
+
+  nextPage(): void {
+
+    this.goToPage(
+      this.currentPage() + 1
+    );
+  }
+
+  // =========================================================
+  // PAGE SIZE
+  // =========================================================
+
+  onPageSizeChange(value: string): void {
+
+    const size = Number(value);
+
+    if (!size || size < 1) {
+      return;
+    }
+
+    this.pageSize.set(size);
+
+    this.currentPage.set(1);
+
+    this.loadTickets();
+  }
+
+  // =========================================================
+  // SORTING
+  // =========================================================
+
+  sort(column: string): void {
+
+    if (this.sortBy() === column) {
+
+      this.sortDirection.set(
+        this.sortDirection() === 'asc'
+          ? 'desc'
+          : 'asc'
+      );
+
+    } else {
+
+      this.sortBy.set(column);
+
+      this.sortDirection.set('asc');
+    }
+
+    this.currentPage.set(1);
+
+    this.loadTickets();
+  }
+
+  // =========================================================
+  // SORT ICON
+  // =========================================================
+
+  sortIcon(column: string): string {
+
+    if (this.sortBy() !== column) {
+      return '↕';
+    }
+
+    return this.sortDirection() === 'asc'
+      ? '↑'
+      : '↓';
   }
 
   // =========================================================
@@ -427,7 +629,6 @@ export class TicketDashboard implements OnInit {
         .toLowerCase()
         .replace(/\s+/g, '-')
     );
-
   }
 
   // =========================================================
@@ -446,40 +647,5 @@ export class TicketDashboard implements OnInit {
       'severity-' +
       severity.toLowerCase()
     );
-
   }
-
-  // =========================================================
-  // SAFE STRING
-  // =========================================================
-
-  private safeString(
-    value: unknown
-  ): string {
-
-    if (
-      value === null ||
-      value === undefined
-    ) {
-      return '';
-    }
-
-    return String(value);
-
-  }
-
-  // =========================================================
-  // NORMALIZE
-  // =========================================================
-
-  private normalize(
-    value: unknown
-  ): string {
-
-    return this.safeString(value)
-      .trim()
-      .toLowerCase();
-
-  }
-
 }

@@ -2,14 +2,14 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit, signal } from '@angular/core';
 import {
   ActivatedRoute,
-  Router,
-  RouterLink
+  Router
 } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 
 import {
   Ticket,
-  UpdateTicketRequest
+  UpdateTicketRequest,
+  ResolveTicketRequest
 } from '../../models/ticket';
 
 import { TicketService } from '../../services/ticket-service';
@@ -17,12 +17,12 @@ import { CommentService } from '../../services/comment-service';
 
 import {
   CreateCommentRequest,
-  TicketComment
+  TicketComment,
+  CommentPage
 } from '../../models/TicketComment';
 
 import { TicketOptions } from '../../models/ticket-options';
 import { OptionsService } from '../../services/options-service';
-
 
 @Component({
   selector: 'app-ticket-detail',
@@ -31,7 +31,7 @@ import { OptionsService } from '../../services/options-service';
   imports: [
     CommonModule,
     FormsModule
-],
+  ],
 
   templateUrl: './ticket-detail.html',
   styleUrl: './ticket-detail.scss'
@@ -50,21 +50,6 @@ export class TicketDetail implements OnInit {
 
   options = signal<TicketOptions | null>(null);
 
-    // =====================================================
-  // CONSTRUCTOR
-  // =====================================================
-
-  constructor(
-    private route: ActivatedRoute,
-    private router: Router,
-    private ticketService: TicketService,
-    private commentService: CommentService,
-    private optionsService: OptionsService
-  ) {}
-
-  goToDashboard(): void {
-    this.router.navigate(['/']);
-  }
 
   // =====================================================
   // TABS
@@ -88,10 +73,6 @@ export class TicketDetail implements OnInit {
 
   resolutionError = signal('');
 
-  /*
-   * Used when editing resolution information
-   * of an already resolved ticket.
-   */
   isSavingResolution = signal(false);
 
 
@@ -102,26 +83,12 @@ export class TicketDetail implements OnInit {
   isEditingTicket = signal(false);
 
   editData: UpdateTicketRequest = {
-
     title: '',
-
     description: '',
-
     category: '',
-
     severity: '',
-
     status: '',
-
-    assignedTeam: '',
-
-    summary: '',
-
-    rootCauseCategory: '',
-
-    rootCause: '',
-
-    resolution: ''
+    assignedTeam: ''
   };
 
   isSavingEdit = signal(false);
@@ -135,14 +102,20 @@ export class TicketDetail implements OnInit {
 
   comments = signal<TicketComment[]>([]);
 
+  commentsTotalCount = signal(0);
+
+  commentsHasMore = signal(false);
+
+  private readonly commentsPageSize = 5;
+
+  private commentsSkip = 0;
+
   isLoadingComments = signal(false);
 
   commentError = signal('');
 
   newComment: CreateCommentRequest = {
-
     author: '',
-
     text: ''
   };
 
@@ -150,7 +123,22 @@ export class TicketDetail implements OnInit {
 
 
   // =====================================================
-  // DELETE
+  // COMMENT EDITING
+  // =====================================================
+
+  editingCommentId = signal<number | null>(null);
+
+  editingCommentText = '';
+
+  isSavingComment = signal(false);
+
+  isDeletingCommentId = signal<number | null>(null);
+
+  commentEditError = signal('');
+
+
+  // =====================================================
+  // DELETE TICKET
   // =====================================================
 
   isDeleting = signal(false);
@@ -163,6 +151,17 @@ export class TicketDetail implements OnInit {
   private incidentId = '';
 
 
+  // =====================================================
+  // CONSTRUCTOR
+  // =====================================================
+
+  constructor(
+    private route: ActivatedRoute,
+    private router: Router,
+    private ticketService: TicketService,
+    private commentService: CommentService,
+    private optionsService: OptionsService
+  ) {}
 
 
   // =====================================================
@@ -186,13 +185,15 @@ export class TicketDetail implements OnInit {
     this.incidentId = incidentId;
 
 
-    // Load dropdown options
+    // ---------------------------------------------------
+    // LOAD OPTIONS
+    // ---------------------------------------------------
+
     this.optionsService
       .getOptions()
       .subscribe({
 
         next: options => {
-
           this.options.set(options);
         },
 
@@ -202,17 +203,35 @@ export class TicketDetail implements OnInit {
             'Failed to load options:',
             err
           );
+
         }
 
       });
 
 
-    // Load ticket
+    // ---------------------------------------------------
+    // LOAD TICKET
+    // ---------------------------------------------------
+
     this.loadTicket();
 
 
-    // Load comments
+    // ---------------------------------------------------
+    // LOAD COMMENTS
+    // ---------------------------------------------------
+
     this.loadComments();
+  }
+
+
+  // =====================================================
+  // BACK TO DASHBOARD
+  // =====================================================
+
+  goToDashboard(): void {
+
+    this.router.navigate(['/']);
+
   }
 
 
@@ -233,10 +252,6 @@ export class TicketDetail implements OnInit {
 
         next: ticket => {
 
-          /*
-           * Make sure backend actually returned
-           * a ticket.
-           */
           if (!ticket) {
 
             this.ticket.set(null);
@@ -256,6 +271,7 @@ export class TicketDetail implements OnInit {
           this.loadResolutionData(ticket);
 
           this.isLoading.set(false);
+
         },
 
 
@@ -266,11 +282,14 @@ export class TicketDetail implements OnInit {
             err
           );
 
+          this.ticket.set(null);
+
           this.errorMessage.set(
             `Ticket ${this.incidentId} not found.`
           );
 
           this.isLoading.set(false);
+
         }
 
       });
@@ -285,19 +304,11 @@ export class TicketDetail implements OnInit {
     ticket: Ticket | null
   ): void {
 
-    /*
-     * IMPORTANT:
-     *
-     * Never read properties from a null ticket.
-     */
     if (!ticket) {
 
       this.resolveData = {
-
         rootCauseCategory: '',
-
         rootCause: '',
-
         resolution: ''
       };
 
@@ -315,6 +326,7 @@ export class TicketDetail implements OnInit {
 
       resolution:
         ticket.resolution ?? ''
+
     };
   }
 
@@ -326,12 +338,20 @@ export class TicketDetail implements OnInit {
   showResolutionTab(): void {
 
     this.activeTab.set('resolution');
+
   }
 
 
   showCommentsTab(): void {
 
     this.activeTab.set('comments');
+
+    /*
+     * Refresh comments whenever the comments
+     * tab is opened.
+     */
+    this.loadComments();
+
   }
 
 
@@ -349,7 +369,9 @@ export class TicketDetail implements OnInit {
 
 
     /*
-     * Do not resolve an already resolved ticket again.
+     * Already resolved.
+     *
+     * Do not resolve again.
      */
     if (ticket.status === 'Resolved') {
 
@@ -359,9 +381,6 @@ export class TicketDetail implements OnInit {
     }
 
 
-    /*
-     * Validate resolution information.
-     */
     if (!this.hasCompleteResolution()) {
 
       this.showResolutionTab();
@@ -374,15 +393,13 @@ export class TicketDetail implements OnInit {
     }
 
 
-    /*
-     * Resolve immediately.
-     */
     this.resolveIncident();
+
   }
 
 
   // =====================================================
-  // CHECK RESOLUTION
+  // VALIDATE RESOLUTION
   // =====================================================
 
   private hasCompleteResolution(): boolean {
@@ -396,6 +413,7 @@ export class TicketDetail implements OnInit {
       this.resolveData.resolution?.trim()
 
     );
+
   }
 
 
@@ -422,38 +440,34 @@ export class TicketDetail implements OnInit {
     this.resolutionError.set('');
 
 
-    this.ticketService
-      .resolve(
+    const request: ResolveTicketRequest = {
 
-        this.incidentId,
-
+      rootCauseCategory:
         this.resolveData.rootCauseCategory.trim(),
 
+      rootCause:
         this.resolveData.rootCause.trim(),
 
+      resolution:
         this.resolveData.resolution.trim()
 
+    };
+
+
+    this.ticketService
+      .resolve(
+        this.incidentId,
+        request
       )
       .subscribe({
 
         next: updatedTicket => {
-
-          console.log(
-            'Resolve API response:',
-            updatedTicket
-          );
-
 
           this.isResolving.set(false);
 
           this.resolutionError.set('');
 
 
-          /*
-           * Some APIs return the updated ticket.
-           *
-           * If yours returns null, reload it.
-           */
           if (updatedTicket) {
 
             this.ticket.set(updatedTicket);
@@ -465,10 +479,12 @@ export class TicketDetail implements OnInit {
           } else {
 
             this.loadTicket();
+
           }
 
 
           this.showResolutionTab();
+
         },
 
 
@@ -479,7 +495,6 @@ export class TicketDetail implements OnInit {
             err
           );
 
-
           this.resolutionError.set(
 
             err?.error?.message ||
@@ -488,8 +503,8 @@ export class TicketDetail implements OnInit {
 
           );
 
-
           this.isResolving.set(false);
+
         }
 
       });
@@ -504,15 +519,11 @@ export class TicketDetail implements OnInit {
 
     const ticket = this.ticket();
 
-
     if (!ticket) {
       return;
     }
 
 
-    /*
-     * Validate resolution.
-     */
     if (!this.hasCompleteResolution()) {
 
       this.resolutionError.set(
@@ -528,31 +539,7 @@ export class TicketDetail implements OnInit {
     this.resolutionError.set('');
 
 
-    /*
-     * Keep ticket resolved.
-     */
-    const request: UpdateTicketRequest = {
-
-      title:
-        ticket.title ?? '',
-
-      description:
-        ticket.description ?? '',
-
-      category:
-        ticket.category ?? '',
-
-      severity:
-        ticket.severity ?? '',
-
-      status:
-        'Resolved',
-
-      assignedTeam:
-        ticket.assignedTeam ?? '',
-
-      summary:
-        ticket.summary ?? '',
+    const request: ResolveTicketRequest = {
 
       rootCauseCategory:
         this.resolveData.rootCauseCategory.trim(),
@@ -562,38 +549,38 @@ export class TicketDetail implements OnInit {
 
       resolution:
         this.resolveData.resolution.trim()
+
     };
 
 
     this.ticketService
-      .update(
-
+      .resolve(
         this.incidentId,
-
         request
-
       )
       .subscribe({
 
-        next: () => {
-
-          console.log(
-            'Resolution updated successfully.'
-          );
-
+        next: updatedTicket => {
 
           this.isSavingResolution.set(false);
 
           this.resolutionError.set('');
 
 
-          /*
-           * The update API returns null.
-           *
-           * Therefore reload the ticket from
-           * the database.
-           */
-          this.loadTicket();
+          if (updatedTicket) {
+
+            this.ticket.set(updatedTicket);
+
+            this.loadResolutionData(
+              updatedTicket
+            );
+
+          } else {
+
+            this.loadTicket();
+
+          }
+
         },
 
 
@@ -604,7 +591,6 @@ export class TicketDetail implements OnInit {
             err
           );
 
-
           this.resolutionError.set(
 
             err?.error?.message ||
@@ -613,8 +599,8 @@ export class TicketDetail implements OnInit {
 
           );
 
-
           this.isSavingResolution.set(false);
+
         }
 
       });
@@ -628,7 +614,6 @@ export class TicketDetail implements OnInit {
   startEditingTicket(): void {
 
     const t = this.ticket();
-
 
     if (!t) {
       return;
@@ -653,32 +638,15 @@ export class TicketDetail implements OnInit {
         t.status ?? '',
 
       assignedTeam:
-        t.assignedTeam ?? '',
+        t.assignedTeam ?? ''
 
-      summary:
-        t.summary ?? '',
-
-
-      /*
-       * Preserve resolution information.
-       *
-       * These fields are NOT shown in the
-       * main Edit form.
-       */
-      rootCauseCategory:
-        t.rootCauseCategory ?? '',
-
-      rootCause:
-        t.rootCause ?? '',
-
-      resolution:
-        t.resolution ?? ''
     };
 
 
     this.editError.set('');
 
     this.isEditingTicket.set(true);
+
   }
 
 
@@ -691,6 +659,7 @@ export class TicketDetail implements OnInit {
     this.isEditingTicket.set(false);
 
     this.editError.set('');
+
   }
 
 
@@ -700,190 +669,108 @@ export class TicketDetail implements OnInit {
 
   saveEdit(): void {
 
-  // =====================================================
-  // VALIDATION
-  // =====================================================
+    if (!this.editData.title?.trim()) {
 
-  if (!this.editData.title?.trim()) {
+      this.editError.set(
+        'Title is required.'
+      );
 
-    this.editError.set(
-      'Title is required.'
-    );
+      return;
+    }
 
-    return;
+
+    if (!this.editData.description?.trim()) {
+
+      this.editError.set(
+        'Description is required.'
+      );
+
+      return;
+    }
+
+
+    const ticket = this.ticket();
+
+    if (!ticket) {
+
+      this.editError.set(
+        'Ticket information is unavailable.'
+      );
+
+      return;
+    }
+
+
+    this.isSavingEdit.set(true);
+
+    this.editError.set('');
+
+
+    const request: UpdateTicketRequest = {
+
+      title:
+        this.editData.title.trim(),
+
+      description:
+        this.editData.description.trim(),
+
+      category:
+        this.editData.category,
+
+      severity:
+        this.editData.severity,
+
+      status:
+        this.editData.status,
+
+      assignedTeam:
+        this.editData.assignedTeam
+
+    };
+
+
+    this.ticketService
+      .update(
+        this.incidentId,
+        request
+      )
+      .subscribe({
+
+        next: () => {
+
+          this.isSavingEdit.set(false);
+
+          this.editError.set('');
+
+          this.isEditingTicket.set(false);
+
+          this.loadTicket();
+
+        },
+
+
+        error: err => {
+
+          console.error(
+            'Failed to save ticket:',
+            err
+          );
+
+          this.editError.set(
+
+            err?.error?.message ||
+
+            'Failed to save changes.'
+
+          );
+
+          this.isSavingEdit.set(false);
+
+        }
+
+      });
   }
 
-
-  if (!this.editData.description?.trim()) {
-
-    this.editError.set(
-      'Description is required.'
-    );
-
-    return;
-  }
-
-
-  const ticket = this.ticket();
-
-
-  if (!ticket) {
-
-    this.editError.set(
-      'Ticket information is unavailable.'
-    );
-
-    return;
-  }
-
-
-  // =====================================================
-  // START SAVING
-  // =====================================================
-
-  this.isSavingEdit.set(true);
-
-  this.editError.set('');
-
-
-  // =====================================================
-  // UPDATE REQUEST
-  // =====================================================
-
-  const request: UpdateTicketRequest = {
-
-    title:
-      this.editData.title.trim(),
-
-    description:
-      this.editData.description.trim(),
-
-    category:
-      this.editData.category,
-
-    severity:
-      this.editData.severity,
-
-    status:
-      this.editData.status,
-
-    assignedTeam:
-      this.editData.assignedTeam,
-
-    summary:
-      this.editData.summary,
-
-
-    // Preserve existing resolution information
-    rootCauseCategory:
-      ticket.rootCauseCategory ?? '',
-
-    rootCause:
-      ticket.rootCause ?? '',
-
-    resolution:
-      ticket.resolution ?? ''
-  };
-
-
-  console.log(
-    'Saving ticket:',
-    request
-  );
-
-
-  // =====================================================
-  // UPDATE API
-  // =====================================================
-
-  this.ticketService
-    .update(
-      this.incidentId,
-      request
-    )
-    .subscribe({
-
-      // ===================================================
-      // SUCCESS
-      // ===================================================
-
-      next: () => {
-
-        console.log(
-          'Ticket updated successfully.'
-        );
-
-
-        /*
-         * Stop the loading state.
-         */
-        this.isSavingEdit.set(false);
-
-
-        /*
-         * Clear errors.
-         */
-        this.editError.set('');
-
-
-        /*
-         * IMPORTANT:
-         *
-         * We are already on:
-         *
-         * /tickets/:incidentId
-         *
-         * Therefore DO NOT navigate to the
-         * same route again.
-         */
-
-
-        /*
-         * Leave edit mode.
-         *
-         * This immediately displays the
-         * normal ticket detail UI.
-         */
-        this.isEditingTicket.set(false);
-
-
-        /*
-         * Reload the ticket from the backend.
-         *
-         * This gets the actual updated values
-         * from the database.
-         */
-        this.loadTicket();
-
-      },
-
-
-      // ===================================================
-      // ERROR
-      // ===================================================
-
-      error: err => {
-
-        console.error(
-          'Failed to save ticket:',
-          err
-        );
-
-
-        this.editError.set(
-
-          err?.error?.message ||
-
-          'Failed to save changes.'
-
-        );
-
-
-        this.isSavingEdit.set(false);
-      }
-
-    });
-}
 
   // =====================================================
   // LOAD COMMENTS
@@ -891,37 +778,213 @@ export class TicketDetail implements OnInit {
 
   loadComments(): void {
 
+    console.log(
+      'Loading comments for:',
+      this.incidentId
+    );
+
+    this.isLoadingComments.set(true);
+
+    this.commentError.set('');
+
+    /*
+     * Start from first page.
+     */
+    this.commentsSkip = 0;
+
+
+    this.commentService
+      .getForTicket(
+        this.incidentId,
+        0,
+        this.commentsPageSize
+      )
+      .subscribe({
+
+        next: (page: CommentPage) => {
+
+          console.log(
+            '========== COMMENTS RESPONSE =========='
+          );
+
+          console.log(
+            'Full response:',
+            page
+          );
+
+          console.log(
+            'Comments:',
+            page.comments
+          );
+
+          console.log(
+            'Total count:',
+            page.totalCount
+          );
+
+          console.log(
+            'Has more:',
+            page.hasMore
+          );
+
+
+          /*
+           * IMPORTANT:
+           *
+           * API returns CommentPage.
+           *
+           * We need page.comments,
+           * NOT page itself.
+           */
+          this.comments.set(
+            page.comments ?? []
+          );
+
+
+          this.commentsTotalCount.set(
+            page.totalCount ?? 0
+          );
+
+
+          this.commentsHasMore.set(
+            page.hasMore ?? false
+          );
+
+
+          this.commentsSkip =
+            page.comments?.length ?? 0;
+
+
+          this.isLoadingComments.set(false);
+
+        },
+
+
+        error: error => {
+
+          console.error(
+            '========== COMMENTS ERROR =========='
+          );
+
+          console.error(error);
+
+
+          this.comments.set([]);
+
+          this.commentsTotalCount.set(0);
+
+          this.commentsHasMore.set(false);
+
+          this.commentsSkip = 0;
+
+
+          this.isLoadingComments.set(false);
+
+
+          this.commentError.set(
+
+            error?.error?.message ||
+
+            'Failed to load comments.'
+
+          );
+
+        }
+
+      });
+  }
+
+
+  // =====================================================
+  // LOAD MORE COMMENTS
+  // =====================================================
+
+  loadMoreComments(): void {
+
+    /*
+     * Prevent duplicate requests.
+     */
+    if (
+      this.isLoadingComments() ||
+      !this.commentsHasMore()
+    ) {
+      return;
+    }
+
+
     this.isLoadingComments.set(true);
 
     this.commentError.set('');
 
 
     this.commentService
-      .getForTicket(this.incidentId)
+      .getForTicket(
+        this.incidentId,
+        this.commentsSkip,
+        this.commentsPageSize
+      )
       .subscribe({
 
-        next: comments => {
+        next: (page: CommentPage) => {
 
-          this.comments.set(comments);
+          const existingComments =
+            this.comments();
+
+          const newComments =
+            page.comments ?? [];
+
+
+          /*
+           * Append next page.
+           */
+          this.comments.set([
+            ...existingComments,
+            ...newComments
+          ]);
+
+
+          this.commentsTotalCount.set(
+            page.totalCount ?? 0
+          );
+
+
+          this.commentsHasMore.set(
+            page.hasMore ?? false
+          );
+
+
+          /*
+           * Move skip forward.
+           */
+          this.commentsSkip =
+            existingComments.length +
+            newComments.length;
+
 
           this.isLoadingComments.set(false);
+
         },
 
 
-        error: err => {
+        error: error => {
 
           console.error(
-            'Failed to load comments:',
-            err
+            'Failed to load more comments:',
+            error
           );
 
 
           this.commentError.set(
-            'Failed to load comments.'
+
+            error?.error?.message ||
+
+            'Failed to load more comments.'
+
           );
 
 
           this.isLoadingComments.set(false);
+
         }
 
       });
@@ -934,13 +997,14 @@ export class TicketDetail implements OnInit {
 
   postComment(): void {
 
-    if (
+    const author =
+      this.newComment.author?.trim();
 
-      !this.newComment.author.trim() ||
+    const text =
+      this.newComment.text?.trim();
 
-      !this.newComment.text.trim()
 
-    ) {
+    if (!author || !text) {
 
       this.commentError.set(
         'Author and comment text are required.'
@@ -955,31 +1019,39 @@ export class TicketDetail implements OnInit {
     this.commentError.set('');
 
 
+    const request: CreateCommentRequest = {
+
+      author,
+
+      text
+
+    };
+
+
+    console.log(
+      'Posting comment:',
+      request
+    );
+
+
     this.commentService
       .create(
-
         this.incidentId,
-
-        this.newComment
-
+        request
       )
       .subscribe({
 
-        next: comment => {
+        next: createdComment => {
 
-          this.comments.update(
-
-            list => [
-
-              ...list,
-
-              comment
-
-            ]
-
+          console.log(
+            'Comment created successfully:',
+            createdComment
           );
 
 
+          /*
+           * Clear form.
+           */
           this.newComment = {
 
             author: '',
@@ -990,6 +1062,13 @@ export class TicketDetail implements OnInit {
 
 
           this.isPostingComment.set(false);
+
+
+          /*
+           * Reload first page from DB.
+           */
+          this.loadComments();
+
         },
 
 
@@ -1002,11 +1081,228 @@ export class TicketDetail implements OnInit {
 
 
           this.commentError.set(
+
+            err?.error?.message ||
+
             'Failed to post comment.'
+
           );
 
 
           this.isPostingComment.set(false);
+
+        }
+
+      });
+  }
+
+
+  // =====================================================
+  // START EDIT COMMENT
+  // =====================================================
+
+  startEditingComment(
+    comment: TicketComment
+  ): void {
+
+    this.editingCommentId.set(
+      comment.id
+    );
+
+
+    this.editingCommentText =
+      comment.text ?? '';
+
+
+    this.commentEditError.set('');
+
+  }
+
+
+  // =====================================================
+  // CANCEL EDIT COMMENT
+  // =====================================================
+
+  cancelEditingComment(): void {
+
+    this.editingCommentId.set(null);
+
+    this.editingCommentText = '';
+
+    this.commentEditError.set('');
+
+  }
+
+
+  // =====================================================
+  // SAVE EDITED COMMENT
+  // =====================================================
+
+  saveEditedComment(
+    comment: TicketComment
+  ): void {
+
+    const text =
+      this.editingCommentText?.trim();
+
+
+    if (!text) {
+
+      this.commentEditError.set(
+        'Comment cannot be empty.'
+      );
+
+      return;
+    }
+
+
+    this.isSavingComment.set(true);
+
+    this.commentEditError.set('');
+
+
+    this.commentService
+      .update(
+        this.incidentId,
+        comment.id,
+        {
+          text
+        }
+      )
+      .subscribe({
+
+        next: updatedComment => {
+
+          console.log(
+            'Comment updated successfully:',
+            updatedComment
+          );
+
+
+          this.editingCommentId.set(null);
+
+          this.editingCommentText = '';
+
+          this.commentEditError.set('');
+
+          this.isSavingComment.set(false);
+
+
+          /*
+           * Reload from database.
+           */
+          this.loadComments();
+
+        },
+
+
+        error: err => {
+
+          console.error(
+            'Failed to update comment:',
+            err
+          );
+
+
+          this.commentEditError.set(
+
+            err?.error?.message ||
+
+            'Failed to update comment.'
+
+          );
+
+
+          this.isSavingComment.set(false);
+
+        }
+
+      });
+  }
+
+
+  // =====================================================
+  // DELETE COMMENT
+  // =====================================================
+
+  deleteComment(
+    comment: TicketComment
+  ): void {
+
+    const confirmed = confirm(
+      'Delete this comment? This cannot be undone.'
+    );
+
+
+    if (!confirmed) {
+      return;
+    }
+
+
+    this.isDeletingCommentId.set(
+      comment.id
+    );
+
+
+    this.commentError.set('');
+
+
+    this.commentService
+      .delete(
+        this.incidentId,
+        comment.id
+      )
+      .subscribe({
+
+        next: () => {
+
+          console.log(
+            'Comment deleted successfully.'
+          );
+
+
+          if (
+            this.editingCommentId() ===
+            comment.id
+          ) {
+
+            this.editingCommentId.set(null);
+
+            this.editingCommentText = '';
+
+          }
+
+
+          this.isDeletingCommentId.set(null);
+
+
+          /*
+           * Reload from database.
+           */
+          this.loadComments();
+
+        },
+
+
+        error: err => {
+
+          console.error(
+            'Failed to delete comment:',
+            err
+          );
+
+
+          this.commentError.set(
+
+            err?.error?.message ||
+
+            'Failed to delete comment.'
+
+          );
+
+
+          this.isDeletingCommentId.set(null);
+
         }
 
       });
@@ -1041,6 +1337,7 @@ export class TicketDetail implements OnInit {
         next: () => {
 
           this.router.navigate(['/']);
+
         },
 
 
@@ -1058,6 +1355,7 @@ export class TicketDetail implements OnInit {
 
 
           this.isDeleting.set(false);
+
         }
 
       });
@@ -1065,7 +1363,7 @@ export class TicketDetail implements OnInit {
 
 
   // =====================================================
-  // SEVERITY CSS CLASS
+  // SEVERITY CSS
   // =====================================================
 
   severityClass(
@@ -1090,7 +1388,7 @@ export class TicketDetail implements OnInit {
 
 
   // =====================================================
-  // STATUS CSS CLASS
+  // STATUS CSS
   // =====================================================
 
   statusClass(

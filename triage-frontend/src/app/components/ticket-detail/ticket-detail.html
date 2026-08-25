@@ -1,7 +1,10 @@
 <div class="detail-container">
 
-  <!-- BACK TO DASHBOARD -->
-<div class="page-top">
+  <!-- =====================================================
+       BACK TO DASHBOARD
+       ===================================================== -->
+
+  <div class="page-top">
 
     <button
       type="button"
@@ -9,6 +12,7 @@
       (click)="goToDashboard()">
 
       <span>←</span>
+
       Back to dashboard
 
     </button>
@@ -16,28 +20,48 @@
   </div>
 
 
+  <!-- =====================================================
+       LOADING
+       ===================================================== -->
 
+  <div
+    *ngIf="isLoading()"
+    class="loading-state">
 
-  <!-- LOADING -->
-  <div *ngIf="isLoading()" class="loading-state">
     <div class="spinner"></div>
-    <p>Loading incident...</p>
+
+    <p>
+      Loading incident...
+    </p>
+
   </div>
 
 
-  <!-- ERROR -->
-  <div *ngIf="errorMessage()" class="error-message">
+  <!-- =====================================================
+       ERROR
+       ===================================================== -->
+
+  <div
+    *ngIf="errorMessage()"
+    class="error-message">
+
     {{ errorMessage() }}
+
   </div>
 
 
-  <!-- TICKET -->
-  <div *ngIf="ticket() as t" class="ticket-card">
+  <!-- =====================================================
+       TICKET
+       ===================================================== -->
+
+  <div
+    *ngIf="ticket() as t"
+    class="ticket-card">
 
 
-    <!-- =====================================================
-         TICKET HEADER
-         ===================================================== -->
+    <!-- ===================================================
+         HEADER
+         =================================================== -->
 
     <header class="ticket-header">
 
@@ -52,14 +76,6 @@
           <h1>
             {{ t.incidentId }}
           </h1>
-
-          <span
-            class="status-badge"
-            [ngClass]="statusClass(t.status)">
-
-            {{ t.status || '—' }}
-
-          </span>
 
         </div>
 
@@ -104,16 +120,14 @@
     </header>
 
 
-    <!-- =====================================================
+    <!-- ===================================================
          EDIT MODE
-         ===================================================== -->
+         =================================================== -->
 
     <div
       *ngIf="isEditingTicket() && options() as opts"
       class="edit-section">
 
-
-      <!-- BACK TO DETAILS -->
 
       <button
         type="button"
@@ -124,21 +138,6 @@
         ← Back to ticket details
 
       </button>
-
-
-      <div class="section-heading">
-
-        <div>
-          <span class="section-label">
-            EDIT INCIDENT
-          </span>
-
-          <h2>
-            Update incident
-          </h2>
-        </div>
-
-      </div>
 
 
       <!-- TITLE -->
@@ -284,36 +283,18 @@
       </div>
 
 
-      <!-- SUMMARY -->
-
-      <div class="field">
-
-        <label for="editSummary">
-          Summary
-        </label>
-
-        <textarea
-          id="editSummary"
-          [(ngModel)]="editData.summary"
-          name="editSummary"
-          rows="4">
-        </textarea>
-
-      </div>
-
-
-      <!-- EDIT ERROR -->
+      <!-- ERROR -->
 
       <div
         *ngIf="editError()"
-        class="error-message">
+        class="error-message edit-error">
 
         {{ editError() }}
 
       </div>
 
 
-      <!-- EDIT ACTIONS -->
+      <!-- ACTIONS -->
 
       <div class="form-actions">
 
@@ -347,18 +328,22 @@
     </div>
 
 
-    <!-- =====================================================
-         NORMAL TICKET VIEW
-         ===================================================== -->
+    <!-- ===================================================
+         NORMAL VIEW
+         =================================================== -->
 
-    <ng-container *ngIf="!isEditingTicket()">
+    <ng-container
+      *ngIf="!isEditingTicket()">
 
 
-      <!-- ===================================================
+      <!-- =================================================
            BASIC INFORMATION
-           =================================================== -->
+           ================================================= -->
 
       <section class="ticket-overview">
+
+
+        <!-- TITLE -->
 
         <div class="main-field">
 
@@ -373,6 +358,8 @@
         </div>
 
 
+        <!-- DESCRIPTION -->
+
         <div class="main-field">
 
           <label>
@@ -386,7 +373,7 @@
         </div>
 
 
-        <!-- META INFORMATION -->
+        <!-- META -->
 
         <div class="meta-grid">
 
@@ -532,9 +519,9 @@
       </section>
 
 
-      <!-- ===================================================
+      <!-- =================================================
            TABS
-           =================================================== -->
+           ================================================= -->
 
       <div class="tabs">
 
@@ -557,19 +544,28 @@
 
           Comments
 
+          <span
+            *ngIf="commentsTotalCount() > 0">
+
+            ({{ commentsTotalCount() }})
+
+          </span>
+
         </button>
 
       </div>
 
 
-      <!-- ===================================================
-           RESOLUTION
-           =================================================== -->
+      <!-- =================================================
+           RESOLUTION TAB
+           ================================================= -->
 
       <section
         *ngIf="activeTab() === 'resolution'"
         class="tab-content">
 
+
+        <!-- HEADER -->
 
         <div class="section-header">
 
@@ -590,7 +586,7 @@
           </div>
 
 
-          <!-- ONLY OPEN INCIDENT SHOWS RESOLVE -->
+          <!-- RESOLVE -->
 
           <button
             *ngIf="t.status !== 'Resolved'"
@@ -615,8 +611,13 @@
         <div class="field">
 
           <label for="rootCauseCategory">
+
             Root cause category
-            <span class="required">*</span>
+
+            <span class="required">
+              *
+            </span>
+
           </label>
 
           <select
@@ -652,8 +653,13 @@
         <div class="field">
 
           <label for="rootCause">
+
             Root cause
-            <span class="required">*</span>
+
+            <span class="required">
+              *
+            </span>
+
           </label>
 
           <textarea
@@ -672,8 +678,13 @@
         <div class="field">
 
           <label for="resolution">
+
             Resolution
-            <span class="required">*</span>
+
+            <span class="required">
+              *
+            </span>
+
           </label>
 
           <textarea
@@ -687,18 +698,18 @@
         </div>
 
 
-        <!-- RESOLUTION ERROR -->
+        <!-- ERROR -->
 
         <div
           *ngIf="resolutionError()"
-          class="error-message">
+          class="error-message resolution-error">
 
           {{ resolutionError() }}
 
         </div>
 
 
-        <!-- ONLY RESOLVED INCIDENT CAN SAVE -->
+        <!-- SAVE RESOLUTION -->
 
         <div
           *ngIf="t.status === 'Resolved'"
@@ -723,14 +734,16 @@
       </section>
 
 
-      <!-- ===================================================
-           COMMENTS
-           =================================================== -->
+      <!-- =================================================
+           COMMENTS TAB
+           ================================================= -->
 
       <section
         *ngIf="activeTab() === 'comments'"
         class="tab-content comments-section">
 
+
+        <!-- SECTION HEADER -->
 
         <div class="section-header">
 
@@ -764,10 +777,13 @@
         </div>
 
 
-        <!-- LOADING COMMENTS -->
+        <!-- INITIAL LOADING -->
 
         <div
-          *ngIf="isLoadingComments()"
+          *ngIf="
+            isLoadingComments() &&
+            comments().length === 0
+          "
           class="comments-loading">
 
           Loading comments...
@@ -775,107 +791,280 @@
         </div>
 
 
-        <!-- COMMENTS -->
+        <!-- COMMENTS CONTENT -->
 
-        <div
-          *ngIf="!isLoadingComments()"
-          class="comment-list">
+        <ng-container
+          *ngIf="
+            !isLoadingComments() ||
+            comments().length > 0
+          ">
 
 
-          <div
-            *ngFor="let c of comments()"
-            class="comment">
+          <!-- COMMENT LIST -->
 
-            <div class="comment-header">
+          <div class="comment-list">
 
-              <strong>
-                {{ c.author }}
-              </strong>
 
-              <span>
-                {{ c.createdAt | date:'short' }}
-              </span>
+            <!-- =================================================
+                 COMMENT
+                 ================================================= -->
+
+            <div
+              *ngFor="let c of comments()"
+              class="comment">
+
+
+              <!-- COMMENT HEADER -->
+
+              <div class="comment-header">
+
+                <strong class="comment-author">
+                  {{ c.author }}
+                </strong>
+
+
+                <div class="comment-meta">
+
+
+                  <!-- EDIT -->
+
+                  <button
+                    *ngIf="editingCommentId() !== c.id"
+                    type="button"
+                    class="comment-action edit-comment-action"
+                    (click)="startEditingComment(c)">
+
+                    Edit
+
+                  </button>
+
+
+                  <!-- DELETE -->
+
+                  <button
+                    *ngIf="editingCommentId() !== c.id"
+                    type="button"
+                    class="comment-action delete-comment-action"
+                    (click)="deleteComment(c)"
+                    [disabled]="
+                      isDeletingCommentId() === c.id
+                    ">
+
+                    {{
+                      isDeletingCommentId() === c.id
+                        ? 'Deleting...'
+                        : 'Delete'
+                    }}
+
+                  </button>
+
+
+                  <!-- DATE -->
+
+                  <span class="comment-date">
+
+                    {{ c.createdAt | date:'medium' }}
+
+                  </span>
+
+                </div>
+
+              </div>
+
+
+              <!-- NORMAL COMMENT -->
+
+              <ng-container
+                *ngIf="
+                  editingCommentId() !== c.id
+                ">
+
+                <p class="comment-text">
+
+                  {{ c.text }}
+
+                </p>
+
+              </ng-container>
+
+
+              <!-- EDIT COMMENT -->
+
+              <div
+                *ngIf="
+                  editingCommentId() === c.id
+                "
+                class="comment-edit-area">
+
+
+                <textarea
+                  [(ngModel)]="editingCommentText"
+                  rows="4"
+                  class="comment-edit-input">
+                </textarea>
+
+
+                <!-- EDIT ERROR -->
+
+                <div
+                  *ngIf="commentEditError()"
+                  class="error-message">
+
+                  {{ commentEditError() }}
+
+                </div>
+
+
+                <!-- EDIT ACTIONS -->
+
+                <div class="comment-edit-actions">
+
+                  <button
+                    type="button"
+                    class="cancel-btn"
+                    (click)="cancelEditingComment()"
+                    [disabled]="isSavingComment()">
+
+                    Cancel
+
+                  </button>
+
+
+                  <button
+                    type="button"
+                    class="save-btn"
+                    (click)="saveEditedComment(c)"
+                    [disabled]="isSavingComment()">
+
+                    {{
+                      isSavingComment()
+                        ? 'Saving...'
+                        : 'Save'
+                    }}
+
+                  </button>
+
+                </div>
+
+              </div>
 
             </div>
 
-            <p>
-              {{ c.text }}
-            </p>
+
+            <!-- =================================================
+                 NO COMMENTS
+                 ================================================= -->
+
+            <div
+              *ngIf="
+                comments().length === 0 &&
+                !isLoadingComments()
+              "
+              class="no-comments">
+
+              No comments yet.
+
+            </div>
+
+
+            <!-- =================================================
+                 LOAD MORE
+                 ================================================= -->
+
+            <div
+              *ngIf="commentsHasMore()"
+              class="load-more-comments">
+
+              <button
+                type="button"
+                class="load-more-comments-btn"
+                (click)="loadMoreComments()"
+                [disabled]="isLoadingComments()">
+
+                {{
+                  isLoadingComments()
+                    ? 'Loading...'
+                    : 'Load more comments'
+                }}
+
+              </button>
+
+            </div>
+
 
           </div>
 
 
-          <div
-            *ngIf="comments().length === 0"
-            class="no-comments">
+          <!-- =================================================
+               ADD COMMENT
+               ================================================= -->
 
-            No comments yet.
-
-          </div>
-
-        </div>
+          <form
+            (ngSubmit)="postComment()"
+            class="comment-form">
 
 
-        <!-- COMMENT FORM -->
+            <!-- AUTHOR -->
 
-        <form
-          (ngSubmit)="postComment()"
-          class="comment-form">
+            <div class="field">
 
+              <label for="author">
+                Your name
+              </label>
 
-          <div class="field">
+              <input
+                id="author"
+                type="text"
+                [(ngModel)]="newComment.author"
+                name="author"
+                placeholder="Enter your name"
+                required />
 
-            <label for="author">
-              Your name
-            </label>
-
-            <input
-              id="author"
-              type="text"
-              [(ngModel)]="newComment.author"
-              name="author"
-              placeholder="Enter your name"
-              required />
-
-          </div>
+            </div>
 
 
-          <div class="field">
+            <!-- COMMENT -->
 
-            <label for="commentText">
-              Comment
-            </label>
+            <div class="field">
 
-            <textarea
-              id="commentText"
-              [(ngModel)]="newComment.text"
-              name="text"
-              rows="4"
-              placeholder="Add a comment..."
-              required>
-            </textarea>
+              <label for="commentText">
+                Comment
+              </label>
 
-          </div>
+              <textarea
+                id="commentText"
+                [(ngModel)]="newComment.text"
+                name="text"
+                rows="4"
+                placeholder="Add a comment..."
+                required>
+              </textarea>
+
+            </div>
 
 
-          <div class="comment-actions">
+            <!-- SUBMIT -->
 
-            <button
-              type="submit"
-              class="submit-comment-btn"
-              [disabled]="isPostingComment()">
+            <div class="comment-actions">
 
-              {{
-                isPostingComment()
-                  ? 'Posting...'
-                  : 'Add comment'
-              }}
+              <button
+                type="submit"
+                class="submit-comment-btn"
+                [disabled]="isPostingComment()">
 
-            </button>
+                {{
+                  isPostingComment()
+                    ? 'Posting...'
+                    : 'Add comment'
+                }}
 
-          </div>
+              </button>
 
-        </form>
+            </div>
+
+          </form>
+
+        </ng-container>
 
       </section>
 

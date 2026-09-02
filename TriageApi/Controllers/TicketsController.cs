@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TriageApi.Dto;
 using TriageApi.Services.Interfaces;
@@ -15,6 +16,7 @@ public class TicketsController : ControllerBase
     }
 
     // GET: /api/tickets
+    [Authorize]
     [HttpGet]
     public async Task<ActionResult<PagedResultDto<TicketListItemDto>>>
         GetAll([FromQuery] TicketQueryDto query)

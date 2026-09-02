@@ -1,7 +1,8 @@
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using TriageApi.Models;
 
-public class TriageDbContext : DbContext
+public class TriageDbContext : IdentityDbContext<ApplicationUser>
 {
     public TriageDbContext(
         DbContextOptions<TriageDbContext> options)

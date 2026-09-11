@@ -65,6 +65,8 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     await scope.ServiceProvider.SeedRolesAsync();
+
+    await scope.ServiceProvider.SeedAdminAsync(builder.Configuration);
 }
 
 // HTTP pipeline

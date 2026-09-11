@@ -17,7 +17,7 @@ public class Ticket
     public string Status { get; set; } = "New";
 
     public string AssignedTeam { get; set; } = string.Empty;
-
+    public string CreatedByUserId { get; set; } = string.Empty;
     public string CreatedBy { get; set; } = string.Empty;
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

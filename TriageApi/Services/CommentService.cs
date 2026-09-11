@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using TriageApi.Dto;
 using TriageApi.Models;
@@ -9,9 +10,11 @@ public class CommentService : ICommentService
 {
     private readonly TriageDbContext _db;
 
-    public CommentService(TriageDbContext db)
+    private readonly UserManager<ApplicationUser> _userManager;
+    public CommentService(TriageDbContext db, UserManager<ApplicationUser> userManager)
     {
         _db = db;
+        _userManager = userManager;
     }
 
 
@@ -103,20 +106,13 @@ public class CommentService : ICommentService
 
     public async Task<Comment?> CreateAsync(
         string incidentId,
-        CreateCommentDto dto)
+        CreateCommentDto dto, string userId)
     {
-        if (string.IsNullOrWhiteSpace(dto.Author))
-        {
-            throw new ArgumentException(
-                "Author is required.");
-        }
-
         if (string.IsNullOrWhiteSpace(dto.Text))
         {
             throw new ArgumentException(
                 "Comment text is required.");
         }
-
 
         var ticketExists =
             await TicketExistsAsync(incidentId);
@@ -125,12 +121,19 @@ public class CommentService : ICommentService
         if (!ticketExists)
             return null;
 
+        var user = await _userManager.FindByIdAsync(userId);
+
+        if (user is null)
+        {
+            throw new UnauthorizedAccessException("Authenticated user was not found.");
+        }
+
 
         var comment = new Comment
         {
             IncidentId = incidentId,
-
-            Author = dto.Author.Trim(),
+            CreatedByUserId = user.Id,
+            Author = user.DisplayName,
 
             Text = dto.Text.Trim(),
 
@@ -154,7 +157,7 @@ public class CommentService : ICommentService
     public async Task<Comment?> UpdateAsync(
         string incidentId,
         int commentId,
-        UpdateCommentDto dto)
+        UpdateCommentDto dto, string userId)
     {
         if (string.IsNullOrWhiteSpace(dto.Text))
         {
@@ -173,7 +176,11 @@ public class CommentService : ICommentService
         if (comment is null)
             return null;
 
-
+        if (comment.CreatedByUserId != userId)
+        {
+            throw new UnauthorizedAccessException(
+                "You can only edit your own comments.");
+        }
         comment.Text = dto.Text.Trim();
 
         comment.UpdatedAt = DateTime.UtcNow;
@@ -192,7 +199,7 @@ public class CommentService : ICommentService
 
     public async Task<bool> DeleteAsync(
         string incidentId,
-        int commentId)
+        int commentId, string userId)
     {
         var comment =
             await _db.Comments
@@ -204,12 +211,44 @@ public class CommentService : ICommentService
         if (comment is null)
             return false;
 
-
+        if (comment.CreatedByUserId != userId)
+        {
+            throw new UnauthorizedAccessException(
+                "You can only delete your own comments.");
+        }
         _db.Comments.Remove(comment);
 
         await _db.SaveChangesAsync();
 
 
         return true;
+    }
+
+    public async Task<bool> CanAccessTicketAsync(
+    string incidentId,
+    string userId,
+    string role)
+    {
+        var ticket =
+            await _db.Tickets
+                .AsNoTracking()
+                .Where(t =>
+                    t.IncidentId == incidentId)
+                .Select(t => new
+                {
+                    t.CreatedByUserId
+                })
+                .FirstOrDefaultAsync();
+
+        if (ticket is null)
+            return false;
+
+        if (role == "Agent" ||
+            role == "Admin")
+        {
+            return true;
+        }
+
+        return ticket.CreatedByUserId == userId;
     }
 }

@@ -5,13 +5,13 @@ namespace TriageApi.Services.Interfaces;
 public interface ITicketService
 {
     Task<PagedResultDto<TicketListItemDto>> GetTicketsAsync(
-        TicketQueryDto query);
+        TicketQueryDto query, string userId, string role);
 
     Task<TicketDetailsDto?> GetByIdAsync(
-        string incidentId);
+        string incidentId, string userId, string role);
 
     Task<TicketDetailsDto> CreateAsync(
-        CreateTicketDto dto);
+        CreateTicketDto dto, string userId);
 
     Task<bool> UpdateAsync(
         string incidentId,
@@ -28,5 +28,5 @@ public interface ITicketService
     Task<bool> DeleteAsync(
         string incidentId);
 
-    Task<TicketStatisticsDto> GetStatisticsAsync();
+    Task<TicketStatisticsDto> GetStatisticsAsync(string userId, string role);
 }

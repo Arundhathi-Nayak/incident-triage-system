@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using TriageApi.Dto;
 using TriageApi.Models;
@@ -10,16 +11,19 @@ public class TicketService : ITicketService
     private readonly TriageDbContext _db;
     private readonly IClassificationService _classificationService;
 
+    private readonly UserManager<ApplicationUser> _userManager;
+
     public TicketService(
         TriageDbContext db,
-        IClassificationService classificationService)
+        IClassificationService classificationService, UserManager<ApplicationUser> userManager)
     {
         _db = db;
         _classificationService = classificationService;
+        _userManager = userManager;
     }
 
     public async Task<PagedResultDto<TicketListItemDto>> GetTicketsAsync(
-        TicketQueryDto query)
+        TicketQueryDto query, string userId, string role)
     {
         if (query.Page < 1)
             query.Page = 1;
@@ -34,6 +38,11 @@ public class TicketService : ITicketService
             .AsNoTracking()
             .AsQueryable();
 
+        if (role == "Requester")
+        {
+            tickets = tickets.Where(t =>
+                t.CreatedByUserId == userId);
+        }
         // SEARCH
         if (!string.IsNullOrWhiteSpace(query.Search))
         {
@@ -174,13 +183,18 @@ public class TicketService : ITicketService
                 query.OrderByDescending(t => t.CreatedAt)
         };
     }
-
     public async Task<TicketDetailsDto?> GetByIdAsync(
-        string incidentId)
+           string incidentId, String userId, String role)
     {
-        return await _db.Tickets
-            .AsNoTracking()
-            .Where(t => t.IncidentId == incidentId)
+        var query = _db.Tickets.AsNoTracking().Where(t => t.IncidentId == incidentId);
+
+        if (role == "Requester")
+        {
+            query = query.Where(t =>
+                t.CreatedByUserId == userId);
+        }
+
+        return await query
             .Select(t => new TicketDetailsDto
             {
                 Id = t.Id,
@@ -202,26 +216,26 @@ public class TicketService : ITicketService
             .FirstOrDefaultAsync();
     }
     public async Task<TicketDetailsDto> CreateAsync(
-    CreateTicketDto dto)
+    CreateTicketDto dto, string userId)
     {
+        var user = await _userManager.FindByIdAsync(userId);
+
+        if (user is null)
+            throw new UnauthorizedAccessException(
+                "Authenticated user was not found.");
+
         var ticket = new Ticket
         {
             Title = dto.Title.Trim(),
             Description = dto.Description.Trim(),
-            CreatedBy = dto.CreatedBy.Trim(),
-
+            CreatedByUserId = user.Id,
+            CreatedBy = user.DisplayName,
             Status = "New",
             CreatedAt = DateTime.UtcNow,
-
-            // DO NOT set IncidentId here.
-            // SQL Server will generate INC10001, INC10002, etc.
         };
 
         _db.Tickets.Add(ticket);
 
-        // SQL Server generates:
-        // Id = 1
-        // IncidentId = INC10001
         await _db.SaveChangesAsync();
 
         // Auto-classification
@@ -363,10 +377,15 @@ public class TicketService : ITicketService
     }
 
 
-    public async Task<TicketStatisticsDto> GetStatisticsAsync()
+    public async Task<TicketStatisticsDto> GetStatisticsAsync(string userId, string role)
     {
         var tickets = _db.Tickets
+            .AsNoTracking()
             .AsNoTracking();
+        if (role == "Requester")
+        {
+            tickets = tickets.Where(t => t.CreatedByUserId == userId);
+        }
 
         var total = await tickets.CountAsync();
 

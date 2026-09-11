@@ -1,3 +1,5 @@
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TriageApi.Dto;
 using TriageApi.Models;
@@ -7,6 +9,7 @@ namespace TriageApi.Controllers;
 
 [ApiController]
 [Route("api/tickets/{incidentId}/comments")]
+[Authorize]
 public class CommentsController : ControllerBase
 {
     private readonly ICommentService _commentService;
@@ -40,6 +43,20 @@ public class CommentsController : ControllerBase
             [FromQuery] int skip = 0,
             [FromQuery] int take = 5)
     {
+        var userId =
+       User.FindFirstValue(
+           ClaimTypes.NameIdentifier);
+
+        var role =
+            User.FindFirstValue(
+                ClaimTypes.Role);
+
+        if (string.IsNullOrWhiteSpace(userId) ||
+            string.IsNullOrWhiteSpace(role))
+        {
+            return Unauthorized();
+        }
+
         var ticketExists =
             await _commentService
                 .TicketExistsAsync(incidentId);
@@ -51,6 +68,15 @@ public class CommentsController : ControllerBase
                 $"Ticket {incidentId} not found.");
         }
 
+        var canAccess =
+        await _commentService
+            .CanAccessTicketAsync(
+                incidentId,
+                userId,
+                role);
+
+        if (!canAccess)
+            return Forbid();
 
         var result =
             await _commentService
@@ -76,11 +102,18 @@ public class CommentsController : ControllerBase
     {
         try
         {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                return Unauthorized();
+            }
+
             var comment =
                 await _commentService
                     .CreateAsync(
                         incidentId,
-                        dto);
+                        dto, userId);
 
 
             if (comment is null)
@@ -102,6 +135,10 @@ public class CommentsController : ControllerBase
         {
             return BadRequest(ex.Message);
         }
+        catch (UnauthorizedAccessException)
+        {
+            return Unauthorized();
+        }
     }
 
 
@@ -118,6 +155,13 @@ public class CommentsController : ControllerBase
     {
         try
         {
+            var userId =
+           User.FindFirstValue(
+               ClaimTypes.NameIdentifier);
+
+            if (string.IsNullOrWhiteSpace(userId))
+                return Unauthorized();
+
             var ticketExists =
                 await _commentService
                     .TicketExistsAsync(
@@ -136,7 +180,7 @@ public class CommentsController : ControllerBase
                     .UpdateAsync(
                         incidentId,
                         commentId,
-                        dto);
+                        dto, userId);
 
 
             if (comment is null)
@@ -152,6 +196,10 @@ public class CommentsController : ControllerBase
         {
             return BadRequest(ex.Message);
         }
+        catch (UnauthorizedAccessException)
+        {
+            return Unauthorized();
+        }
     }
 
 
@@ -164,6 +212,12 @@ public class CommentsController : ControllerBase
         string incidentId,
         int commentId)
     {
+        var userId =
+        User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
+
         var ticketExists =
             await _commentService
                 .TicketExistsAsync(
@@ -181,7 +235,7 @@ public class CommentsController : ControllerBase
             await _commentService
                 .DeleteAsync(
                     incidentId,
-                    commentId);
+                    commentId, userId);
 
 
         if (!deleted)

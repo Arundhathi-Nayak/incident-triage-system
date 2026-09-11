@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TriageApi.Dto;
@@ -5,6 +6,7 @@ using TriageApi.Services.Interfaces;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class TicketsController : ControllerBase
 {
     private readonly ITicketService _ticketService;
@@ -21,8 +23,13 @@ public class TicketsController : ControllerBase
     public async Task<ActionResult<PagedResultDto<TicketListItemDto>>>
         GetAll([FromQuery] TicketQueryDto query)
     {
+        var currentUser = GetCurrentUser();
+
+        if (currentUser is null)
+            return Unauthorized();
+
         var result =
-            await _ticketService.GetTicketsAsync(query);
+            await _ticketService.GetTicketsAsync(query, currentUser.Value.UserId, currentUser.Value.Role);
 
         return Ok(result);
     }
@@ -32,8 +39,12 @@ public class TicketsController : ControllerBase
     public async Task<ActionResult<TicketStatisticsDto>>
         GetStatistics()
     {
+        var currentUser = GetCurrentUser();
+
+        if (currentUser is null)
+            return Unauthorized();
         var result =
-            await _ticketService.GetStatisticsAsync();
+            await _ticketService.GetStatisticsAsync(currentUser.Value.UserId, currentUser.Value.Role);
 
         return Ok(result);
     }
@@ -43,8 +54,12 @@ public class TicketsController : ControllerBase
     public async Task<ActionResult<TicketDetailsDto>>
         GetById(string incidentId)
     {
+        var currentUser = GetCurrentUser();
+
+        if (currentUser is null)
+            return Unauthorized();
         var ticket =
-            await _ticketService.GetByIdAsync(incidentId);
+            await _ticketService.GetByIdAsync(incidentId, currentUser.Value.UserId, currentUser.Value.Role);
 
         if (ticket is null)
             return NotFound(
@@ -64,19 +79,22 @@ public class TicketsController : ControllerBase
         if (string.IsNullOrWhiteSpace(dto.Description))
             return BadRequest("Description is required.");
 
-        if (string.IsNullOrWhiteSpace(dto.CreatedBy))
-            return BadRequest("CreatedBy is required.");
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-        var ticket =
-            await _ticketService.CreateAsync(dto);
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
+
+        var ticket = await _ticketService.CreateAsync(dto, userId);
 
         return CreatedAtRoute(
             "GetTicketByIncidentId",
             new { incidentId = ticket.IncidentId },
             ticket);
     }
+
     // PUT: /api/tickets/INC10001
     [HttpPut("{incidentId}")]
+    [Authorize(Roles = "Agent,Admin")]
     public async Task<IActionResult> Update(
         string incidentId,
         UpdateTicketDto dto)
@@ -100,8 +118,10 @@ public class TicketsController : ControllerBase
         }
     }
 
+
     // POST: /api/tickets/INC10001/resolve
     [HttpPost("{incidentId}/resolve")]
+    [Authorize(Roles = "Agent,Admin")]
     public async Task<ActionResult<TicketDetailsDto>>
         Resolve(
             string incidentId,
@@ -132,6 +152,7 @@ public class TicketsController : ControllerBase
 
     // PUT: /api/tickets/INC10001/resolution
     [HttpPut("{incidentId}/resolution")]
+    [Authorize(Roles = "Agent,Admin")]
     public async Task<ActionResult<TicketDetailsDto>>
         UpdateResolution(
             string incidentId,
@@ -162,6 +183,7 @@ public class TicketsController : ControllerBase
 
     // DELETE: /api/tickets/INC10001
     [HttpDelete("{incidentId}")]
+    [Authorize(Roles = "Agent,Admin")]
     public async Task<IActionResult> Delete(
         string incidentId)
     {
@@ -174,5 +196,21 @@ public class TicketsController : ControllerBase
                 $"Ticket {incidentId} not found.");
 
         return NoContent();
+    }
+    private (string UserId, string Role)? GetCurrentUser()
+    {
+        var userId =
+            User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        var role =
+            User.FindFirstValue(ClaimTypes.Role);
+
+        if (string.IsNullOrWhiteSpace(userId) ||
+            string.IsNullOrWhiteSpace(role))
+        {
+            return null;
+        }
+
+        return (userId, role);
     }
 }

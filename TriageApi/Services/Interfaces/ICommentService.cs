@@ -15,14 +15,16 @@ public interface ICommentService
 
     Task<Comment?> CreateAsync(
         string incidentId,
-        CreateCommentDto dto);
+        CreateCommentDto dto, string userId);
 
     Task<Comment?> UpdateAsync(
         string incidentId,
         int commentId,
-        UpdateCommentDto dto);
+        UpdateCommentDto dto, string userId);
 
     Task<bool> DeleteAsync(
         string incidentId,
-        int commentId);
+        int commentId, string userId);
+
+    Task<bool> CanAccessTicketAsync(string incidentId, string userId, string role);
 }

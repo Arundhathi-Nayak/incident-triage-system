@@ -30,6 +30,7 @@ public static class ServiceExtensions
             ClassificationService>();
 
         services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<IAdminService, AdminService>();
         // -----------------------------------------
         // Classification API
         // -----------------------------------------

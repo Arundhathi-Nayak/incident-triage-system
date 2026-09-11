@@ -6,6 +6,8 @@ public class Comment
 
     public string IncidentId { get; set; } = string.Empty;
 
+    public string CreatedByUserId { get; set; } = string.Empty;
+
     public string Author { get; set; } = string.Empty;
 
     public string Text { get; set; } = string.Empty;

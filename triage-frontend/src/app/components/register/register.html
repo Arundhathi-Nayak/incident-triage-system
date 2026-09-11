@@ -1,0 +1,136 @@
+<div class="register-page">
+
+  <div class="register-card">
+
+    <div class="register-header">
+
+      <h1>Create account</h1>
+
+      <p>
+        Create your incident management account.
+      </p>
+
+    </div>
+
+
+    <form (ngSubmit)="register()">
+
+      <div class="form-group">
+
+        <label for="displayName">
+          Display name
+        </label>
+
+        <input
+          id="displayName"
+          type="text"
+          name="displayName"
+          [(ngModel)]="registerRequest.displayName"
+          placeholder="Enter your name"
+          autocomplete="name"
+        />
+
+      </div>
+
+
+      <div class="form-group">
+
+        <label for="email">
+          Email
+        </label>
+
+        <input
+          id="email"
+          type="email"
+          name="email"
+          [(ngModel)]="registerRequest.email"
+          placeholder="Enter your email"
+          autocomplete="email"
+        />
+
+      </div>
+
+
+      <div class="form-group">
+
+        <label for="password">
+          Password
+        </label>
+
+        <input
+          id="password"
+          type="password"
+          name="password"
+          [(ngModel)]="registerRequest.password"
+          placeholder="Enter your password"
+          autocomplete="new-password"
+        />
+
+      </div>
+
+
+      <div class="form-group">
+
+        <label for="confirmPassword">
+          Confirm password
+        </label>
+
+        <input
+          id="confirmPassword"
+          type="password"
+          name="confirmPassword"
+          [(ngModel)]="confirmPassword"
+          placeholder="Confirm your password"
+          autocomplete="new-password"
+        />
+
+      </div>
+
+
+      <div
+        *ngIf="errorMessage"
+        class="error-message">
+
+        {{ errorMessage }}
+
+      </div>
+
+
+      <button
+        type="submit"
+        class="register-button"
+        [disabled]="isLoading">
+
+        <span *ngIf="!isLoading">
+          Create account
+        </span>
+
+        <span *ngIf="isLoading">
+          Creating account...
+        </span>
+
+      </button>
+
+    </form>
+
+
+    <div class="login-section">
+
+      <span>
+        Already have an account?
+      </span>
+
+      <button
+        type="button"
+        class="login-link"
+        (click)="goToLogin()">
+
+        Sign in
+
+      </button>
+
+    </div>
+
+  </div>
+
+</div>

@@ -3,29 +3,60 @@
   <!-- =====================================================
        HEADER
        ===================================================== -->
+<header class="dashboard-header">
 
-  <header class="dashboard-header">
+  <div class="header-content">
 
-    <div class="header-content">
+    <h1>Incident Dashboard</h1>
 
-      <h1>Incident Dashboard</h1>
+    <p>
+      Monitor, track and resolve incidents efficiently.
+    </p>
 
-      <p>
-        Monitor, track and resolve incidents efficiently.
-      </p>
+  </div>
 
-    </div>
 
+  <div class="header-actions">
+
+    <!-- ADMIN ONLY -->
+    <button
+      *ngIf="isAdmin"
+      type="button"
+      class="role-management-btn"
+      (click)="openRoleManagement()">
+
+      <span class="role-icon">⚙</span>
+
+      Role Management
+
+    </button>
+
+
+    <!-- ALL AUTHENTICATED USERS -->
     <a
       routerLink="/create"
       class="create-btn">
 
       <span class="plus">+</span>
+
       Create incident
 
     </a>
 
-  </header>
+
+    <!-- LOGOUT -->
+    <button
+      type="button"
+      class="logout-btn"
+      (click)="logout()">
+
+      Logout
+
+    </button>
+
+  </div>
+
+</header>
 
 
   <!-- =====================================================
@@ -827,5 +858,281 @@
     </div>
 
   </section>
+<!-- =====================================================
+     ADMIN ROLE MANAGEMENT MODAL
+     ===================================================== -->
 
+<div
+  *ngIf="isRoleManagementOpen()"
+  class="modal-backdrop"
+  (click)="closeRoleManagement()">
+
+
+  <div
+    class="role-modal"
+    (click)="$event.stopPropagation()">
+
+
+    <!-- MODAL HEADER -->
+
+    <div class="role-modal-header">
+
+      <div>
+
+        <h2>
+          Role Management
+        </h2>
+
+        <p>
+          Manage application roles for users.
+        </p>
+
+      </div>
+
+
+      <button
+        type="button"
+        class="modal-close-btn"
+        [disabled]="changingRoleUserId() !== null"
+        (click)="closeRoleManagement()">
+
+        ×
+
+      </button>
+
+    </div>
+
+
+    <!-- SUCCESS -->
+
+    <div
+      *ngIf="roleManagementSuccess()"
+      class="role-success">
+
+      {{ roleManagementSuccess() }}
+
+    </div>
+
+
+    <!-- ERROR -->
+
+    <div
+      *ngIf="roleManagementError()"
+      class="role-error">
+
+      {{ roleManagementError() }}
+
+    </div>
+
+
+    <!-- LOADING -->
+
+    <div
+      *ngIf="isLoadingUsers()"
+      class="role-loading">
+
+      Loading users...
+
+    </div>
+
+
+    <!-- USER TABLE -->
+
+    <div
+      *ngIf="!isLoadingUsers()"
+      class="role-table-container">
+
+
+      <table class="role-table">
+
+        <thead>
+
+          <tr>
+
+            <th>
+              User
+            </th>
+
+            <th>
+              Email
+            </th>
+
+            <th>
+              Current Role
+            </th>
+
+            <th>
+              Change Role
+            </th>
+
+          </tr>
+
+        </thead>
+
+
+        <tbody>
+
+          <tr
+            *ngFor="let user of users()">
+
+
+            <!-- USER -->
+
+            <td>
+
+              <div class="user-info">
+
+                <div class="user-avatar">
+
+                  {{ user.displayName.charAt(0).toUpperCase() }}
+
+                </div>
+
+                <div>
+
+                  <div class="user-name">
+
+                    {{ user.displayName }}
+
+                  </div>
+
+                  <div
+                    *ngIf="isCurrentUser(user)"
+                    class="current-user-label">
+
+                    You
+
+                  </div>
+
+                </div>
+
+              </div>
+
+            </td>
+
+
+            <!-- EMAIL -->
+
+            <td>
+
+              {{ user.email }}
+
+            </td>
+
+
+            <!-- CURRENT ROLE -->
+
+            <td>
+
+              <span
+                class="role-badge"
+                [ngClass]="
+                  'role-' +
+                  (user.roles?.[0] ?? 'Requester').toLowerCase()
+                ">
+
+                {{ user.roles?.[0] ?? 'Requester' }}
+
+              </span>
+
+            </td>
+
+
+            <!-- ROLE SELECT -->
+
+            <td>
+
+              <select
+                class="role-select"
+                [value]="user.roles?.[0] ?? 'Requester'"
+                [disabled]="
+                  isCurrentUser(user) ||
+                  changingRoleUserId() === user.id
+                "
+                (change)="
+                  changeUserRole(
+                    user,
+                    $any($event.target).value
+                  )
+                ">
+
+                <option value="Requester">
+                  Requester
+                </option>
+
+                <option value="Agent">
+                  Agent
+                </option>
+
+                <option value="Admin">
+                  Admin
+                </option>
+
+              </select>
+
+
+              <span
+                *ngIf="
+                  changingRoleUserId() === user.id
+                "
+                class="role-changing">
+
+                Saving...
+
+              </span>
+
+            </td>
+
+          </tr>
+
+
+          <!-- EMPTY -->
+
+          <tr
+            *ngIf="users().length === 0">
+
+            <td
+              colspan="4"
+              class="empty-users">
+
+              No users found.
+
+            </td>
+
+          </tr>
+
+        </tbody>
+
+      </table>
+
+    </div>
+
+
+    <!-- MODAL FOOTER -->
+
+    <div class="role-modal-footer">
+
+      <span class="role-note">
+
+        Users must logout and login again after
+        their role is changed.
+
+      </span>
+
+
+      <button
+        type="button"
+        class="modal-done-btn"
+        [disabled]="changingRoleUserId() !== null"
+        (click)="closeRoleManagement()">
+
+        Done
+
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
 </div>

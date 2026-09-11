@@ -6,12 +6,16 @@ import {
   computed,
   signal
 } from '@angular/core';
+
 import {
   FormsModule
 } from '@angular/forms';
+
 import {
+  Router,
   RouterLink
 } from '@angular/router';
+
 import {
   Subject,
   Subscription,
@@ -27,7 +31,13 @@ import {
   TicketStatistics
 } from '../../models/ticket';
 
+import {
+  UserSummary
+} from '../../models/admin-user';
+
 import { TicketService } from '../../services/ticket-service';
+import { AdminUserService } from '../../services/admin-user.service';
+import { AuthService } from '../../services/auth-service';
 
 @Component({
   selector: 'app-ticket-dashboard',
@@ -42,21 +52,17 @@ import { TicketService } from '../../services/ticket-service';
 })
 export class TicketDashboard implements OnInit, OnDestroy {
 
-  // =========================================================
-  // DATA
-  // =========================================================
-
   readonly Math = Math;
+
+  // =====================================================
+  // TICKETS
+  // =====================================================
 
   tickets = signal<TicketListItem[]>([]);
 
   isLoading = signal<boolean>(true);
 
   errorMessage = signal<string>('');
-
-  // =========================================================
-  // SERVER PAGINATION
-  // =========================================================
 
   currentPage = signal<number>(1);
 
@@ -66,10 +72,6 @@ export class TicketDashboard implements OnInit, OnDestroy {
 
   totalPages = signal<number>(0);
 
-  // =========================================================
-  // SEARCH
-  // =========================================================
-
   searchTerm = signal<string>('');
 
   private searchSubject =
@@ -77,11 +79,13 @@ export class TicketDashboard implements OnInit, OnDestroy {
 
   private searchSubscription?: Subscription;
 
-  // =========================================================
-  // FILTER PANEL
-  // =========================================================
 
-  showFilters = signal<boolean>(false);
+  // =====================================================
+  // FILTERS
+  // =====================================================
+
+  showFilters =
+    signal<boolean>(false);
 
   selectedStatus = '';
 
@@ -91,66 +95,64 @@ export class TicketDashboard implements OnInit, OnDestroy {
 
   selectedTeam = '';
 
-  // =========================================================
-  // OPTIONS
-  // =========================================================
-
   statuses: string[] = [];
 
   severities: string[] = [];
 
-  categories = signal<string[]>([]);
+  categories =
+    signal<string[]>([]);
 
-  teams = signal<string[]>([]);
+  teams =
+    signal<string[]>([]);
 
-  // =========================================================
+
+  // =====================================================
   // SORTING
-  // =========================================================
+  // =====================================================
 
-  sortBy = signal<string>('createdAt');
+  sortBy =
+    signal<string>('createdAt');
 
-  sortDirection = signal<'asc' | 'desc'>('desc');
+  sortDirection =
+    signal<'asc' | 'desc'>('desc');
 
-  // =========================================================
+
+  // =====================================================
   // STATISTICS
-  // =========================================================
+  // =====================================================
 
-  statistics = signal<TicketStatistics>({
-    total: 0,
+  statistics =
+    signal<TicketStatistics>({
+      total: 0,
+      new: 0,
+      assigned: 0,
+      userPending: 0,
+      resolved: 0,
+      p1: 0,
+      p2: 0,
+      p3: 0,
+      p4: 0,
+      byCategory: {},
+      byTeam: {}
+    });
 
-    new: 0,
-    assigned: 0,
-    userPending: 0,
-    resolved: 0,
 
-    p1: 0,
-    p2: 0,
-    p3: 0,
-    p4: 0,
-
-    byCategory: {},
-    byTeam: {}
-  });
-
-  // =========================================================
-  // STATISTICS COMPUTED VALUES
-  // =========================================================
-
-  totalTickets = computed(() =>
-    this.statistics().total
+  totalTickets = computed(
+    () => this.statistics().total
   );
 
-  resolvedTickets = computed(() =>
-    this.statistics().resolved
+  resolvedTickets = computed(
+    () => this.statistics().resolved
   );
 
-  openTickets = computed(() =>
-    this.statistics().new
+  openTickets = computed(
+    () => this.statistics().new
   );
 
-  inProgressTickets = computed(() =>
-    this.statistics().assigned +
-    this.statistics().userPending
+  inProgressTickets = computed(
+    () =>
+      this.statistics().assigned +
+      this.statistics().userPending
   );
 
   resolvedPercentage = computed(() => {
@@ -166,9 +168,6 @@ export class TicketDashboard implements OnInit, OnDestroy {
     );
   });
 
-  // =========================================================
-  // ACTIVE FILTER COUNT
-  // =========================================================
 
   activeFilterCount = computed(() => {
 
@@ -193,16 +192,19 @@ export class TicketDashboard implements OnInit, OnDestroy {
     return count;
   });
 
-  // =========================================================
-  // PAGINATION DISPLAY
-  // =========================================================
+
+  // =====================================================
+  // PAGINATION
+  // =====================================================
 
   pageNumbers = computed(() => {
 
     const total = this.totalPages();
+
     const current = this.currentPage();
 
     if (total <= 7) {
+
       return Array.from(
         { length: total },
         (_, index) => index + 1
@@ -217,10 +219,17 @@ export class TicketDashboard implements OnInit, OnDestroy {
       pages.push(-1);
     }
 
-    const start = Math.max(2, current - 1);
-    const end = Math.min(total - 1, current + 1);
+    const start =
+      Math.max(2, current - 1);
 
-    for (let page = start; page <= end; page++) {
+    const end =
+      Math.min(total - 1, current + 1);
+
+    for (
+      let page = start;
+      page <= end;
+      page++
+    ) {
       pages.push(page);
     }
 
@@ -233,17 +242,59 @@ export class TicketDashboard implements OnInit, OnDestroy {
     return pages;
   });
 
-  // =========================================================
+
+  // =====================================================
+  // ADMIN ROLE MANAGEMENT
+  // =====================================================
+
+  users =
+    signal<UserSummary[]>([]);
+
+  isRoleManagementOpen =
+    signal<boolean>(false);
+
+  isLoadingUsers =
+    signal<boolean>(false);
+
+  roleManagementError =
+    signal<string>('');
+
+  roleManagementSuccess =
+    signal<string>('');
+
+  changingRoleUserId =
+    signal<string | null>(null);
+
+
+  // =====================================================
+  // CURRENT USER
+  // =====================================================
+
+  get currentUser() {
+    return this.authService.getCurrentUser();
+  }
+
+
+  get isAdmin(): boolean {
+    return this.authService.hasRole('Admin');
+  }
+
+
+  // =====================================================
   // CONSTRUCTOR
-  // =========================================================
+  // =====================================================
 
   constructor(
-    private ticketService: TicketService
+    private ticketService: TicketService,
+    private authService: AuthService,
+    private adminUserService: AdminUserService,
+    private router: Router
   ) {}
 
-  // =========================================================
-  // INIT
-  // =========================================================
+
+  // =====================================================
+  // LIFECYCLE
+  // =====================================================
 
   ngOnInit(): void {
 
@@ -256,9 +307,6 @@ export class TicketDashboard implements OnInit, OnDestroy {
     this.loadTickets();
   }
 
-  // =========================================================
-  // DESTROY
-  // =========================================================
 
   ngOnDestroy(): void {
 
@@ -267,9 +315,10 @@ export class TicketDashboard implements OnInit, OnDestroy {
     this.searchSubject.complete();
   }
 
-  // =========================================================
-  // SEARCH SETUP
-  // =========================================================
+
+  // =====================================================
+  // SEARCH
+  // =====================================================
 
   private setupSearch(): void {
 
@@ -286,13 +335,13 @@ export class TicketDashboard implements OnInit, OnDestroy {
           this.currentPage.set(1);
 
           this.loadTickets();
-
         });
   }
 
-  // =========================================================
-  // LOAD OPTIONS
-  // =========================================================
+
+  // =====================================================
+  // TICKET OPTIONS
+  // =====================================================
 
   loadOptions(): void {
 
@@ -327,9 +376,10 @@ export class TicketDashboard implements OnInit, OnDestroy {
       });
   }
 
-  // =========================================================
-  // LOAD STATISTICS
-  // =========================================================
+
+  // =====================================================
+  // STATISTICS
+  // =====================================================
 
   loadStatistics(): void {
 
@@ -354,9 +404,10 @@ export class TicketDashboard implements OnInit, OnDestroy {
       });
   }
 
-  // =========================================================
+
+  // =====================================================
   // LOAD TICKETS
-  // =========================================================
+  // =====================================================
 
   loadTickets(): void {
 
@@ -384,6 +435,7 @@ export class TicketDashboard implements OnInit, OnDestroy {
 
       sortDirection: this.sortDirection()
     };
+
 
     this.ticketService
       .getTickets(query)
@@ -438,20 +490,24 @@ export class TicketDashboard implements OnInit, OnDestroy {
       });
   }
 
-  // =========================================================
-  // SEARCH
-  // =========================================================
 
-  onSearchChange(value: string): void {
+  // =====================================================
+  // SEARCH
+  // =====================================================
+
+  onSearchChange(
+    value: string
+  ): void {
 
     this.searchSubject.next(
       value ?? ''
     );
   }
 
-  // =========================================================
-  // APPLY FILTERS
-  // =========================================================
+
+  // =====================================================
+  // FILTERS
+  // =====================================================
 
   applyFilters(): void {
 
@@ -462,9 +518,6 @@ export class TicketDashboard implements OnInit, OnDestroy {
     this.loadTickets();
   }
 
-  // =========================================================
-  // FILTER PANEL
-  // =========================================================
 
   toggleFilters(): void {
 
@@ -473,14 +526,12 @@ export class TicketDashboard implements OnInit, OnDestroy {
     );
   }
 
+
   closeFilters(): void {
 
     this.showFilters.set(false);
   }
 
-  // =========================================================
-  // CLEAR FILTERS
-  // =========================================================
 
   clearFilters(): void {
 
@@ -497,9 +548,6 @@ export class TicketDashboard implements OnInit, OnDestroy {
     this.loadTickets();
   }
 
-  // =========================================================
-  // CLEAR EVERYTHING
-  // =========================================================
 
   clearAll(): void {
 
@@ -518,11 +566,14 @@ export class TicketDashboard implements OnInit, OnDestroy {
     this.loadTickets();
   }
 
-  // =========================================================
-  // PAGINATION
-  // =========================================================
 
-  goToPage(page: number): void {
+  // =====================================================
+  // PAGINATION
+  // =====================================================
+
+  goToPage(
+    page: number
+  ): void {
 
     if (
       page < 1 ||
@@ -537,12 +588,14 @@ export class TicketDashboard implements OnInit, OnDestroy {
     this.loadTickets();
   }
 
+
   previousPage(): void {
 
     this.goToPage(
       this.currentPage() - 1
     );
   }
+
 
   nextPage(): void {
 
@@ -551,11 +604,10 @@ export class TicketDashboard implements OnInit, OnDestroy {
     );
   }
 
-  // =========================================================
-  // PAGE SIZE
-  // =========================================================
 
-  onPageSizeChange(value: string): void {
+  onPageSizeChange(
+    value: string
+  ): void {
 
     const size = Number(value);
 
@@ -570,13 +622,18 @@ export class TicketDashboard implements OnInit, OnDestroy {
     this.loadTickets();
   }
 
-  // =========================================================
+
+  // =====================================================
   // SORTING
-  // =========================================================
+  // =====================================================
 
-  sort(column: string): void {
+  sort(
+    column: string
+  ): void {
 
-    if (this.sortBy() === column) {
+    if (
+      this.sortBy() === column
+    ) {
 
       this.sortDirection.set(
         this.sortDirection() === 'asc'
@@ -596,13 +653,14 @@ export class TicketDashboard implements OnInit, OnDestroy {
     this.loadTickets();
   }
 
-  // =========================================================
-  // SORT ICON
-  // =========================================================
 
-  sortIcon(column: string): string {
+  sortIcon(
+    column: string
+  ): string {
 
-    if (this.sortBy() !== column) {
+    if (
+      this.sortBy() !== column
+    ) {
       return '↕';
     }
 
@@ -611,9 +669,10 @@ export class TicketDashboard implements OnInit, OnDestroy {
       : '↓';
   }
 
-  // =========================================================
-  // STATUS CLASS
-  // =========================================================
+
+  // =====================================================
+  // CSS HELPERS
+  // =====================================================
 
   statusClass(
     status: string | null | undefined
@@ -631,9 +690,6 @@ export class TicketDashboard implements OnInit, OnDestroy {
     );
   }
 
-  // =========================================================
-  // SEVERITY CLASS
-  // =========================================================
 
   severityClass(
     severity: string | null | undefined
@@ -647,5 +703,202 @@ export class TicketDashboard implements OnInit, OnDestroy {
       'severity-' +
       severity.toLowerCase()
     );
+  }
+
+
+  // =====================================================
+  // ADMIN - OPEN ROLE MANAGEMENT
+  // =====================================================
+
+  openRoleManagement(): void {
+
+    if (!this.isAdmin) {
+      return;
+    }
+
+    this.isRoleManagementOpen.set(true);
+
+    this.roleManagementError.set('');
+
+    this.roleManagementSuccess.set('');
+
+    this.loadUsers();
+  }
+
+
+  // =====================================================
+  // ADMIN - CLOSE ROLE MANAGEMENT
+  // =====================================================
+
+  closeRoleManagement(): void {
+
+    if (
+      this.changingRoleUserId() !== null
+    ) {
+      return;
+    }
+
+    this.isRoleManagementOpen.set(false);
+
+    this.roleManagementError.set('');
+
+    this.roleManagementSuccess.set('');
+  }
+
+
+  // =====================================================
+  // ADMIN - LOAD USERS
+  // =====================================================
+
+  loadUsers(): void {
+
+    this.isLoadingUsers.set(true);
+
+    this.roleManagementError.set('');
+
+    this.adminUserService
+      .getUsers()
+      .subscribe({
+
+        next: users => {
+
+          this.users.set(
+            users ?? []
+          );
+
+          this.isLoadingUsers.set(false);
+        },
+
+        error: error => {
+
+          console.error(
+            'Failed to load users:',
+            error
+          );
+
+          this.roleManagementError.set(
+            'Failed to load users. Please try again.'
+          );
+
+          this.isLoadingUsers.set(false);
+        }
+      });
+  }
+
+
+  // =====================================================
+  // ADMIN - CHANGE ROLE
+  // =====================================================
+
+  changeUserRole(
+    user: UserSummary,
+    role: string
+  ): void {
+
+    if (!role) {
+      return;
+    }
+
+    if (
+      user.id === this.currentUser?.userId
+    ) {
+      return;
+    }
+
+    const currentRole =
+      user.roles?.[0] ?? '';
+
+    if (
+      currentRole === role
+    ) {
+      return;
+    }
+
+    this.changingRoleUserId.set(
+      user.id
+    );
+
+    this.roleManagementError.set('');
+
+    this.roleManagementSuccess.set('');
+
+
+    this.adminUserService
+      .changeRole(
+        user.id,
+        role
+      )
+      .subscribe({
+
+        next: () => {
+
+          this.users.update(
+            users =>
+              users.map(existingUser => {
+
+                if (
+                  existingUser.id !== user.id
+                ) {
+                  return existingUser;
+                }
+
+                return {
+                  ...existingUser,
+                  roles: [role]
+                };
+              })
+          );
+
+          this.roleManagementSuccess.set(
+            `${user.displayName}'s role was changed to ${role}.`
+          );
+
+          this.changingRoleUserId.set(null);
+        },
+
+        error: error => {
+
+          console.error(
+            'Failed to change user role:',
+            error
+          );
+
+          this.roleManagementError.set(
+            error?.error?.message ??
+            'Failed to change user role. Please try again.'
+          );
+
+          this.changingRoleUserId.set(null);
+        }
+      });
+  }
+
+
+  // =====================================================
+  // ADMIN - CHECK CURRENT ADMIN
+  // =====================================================
+
+  isCurrentUser(
+    user: UserSummary
+  ): boolean {
+
+    return (
+      user.id ===
+      this.currentUser?.userId
+    );
+  }
+
+
+  // =====================================================
+  // LOGOUT
+  // =====================================================
+
+  logout(): void {
+
+    this.authService.logout();
+
+    this.router.navigate([
+      '/login'
+    ]);
   }
 }

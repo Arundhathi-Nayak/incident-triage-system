@@ -1,10 +1,11 @@
 import { CommonModule } from '@angular/common';
-import { Component, signal } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 
 import { CreateTicketRequest } from '../../models/ticket';
 import { TicketService } from '../../services/ticket-service';
+import { AuthService } from '../../services/auth-service';
 
 @Component({
   selector: 'app-ticket-form',
@@ -16,7 +17,7 @@ import { TicketService } from '../../services/ticket-service';
   templateUrl: './ticket-form.html',
   styleUrl: './ticket-form.scss'
 })
-export class TicketForm {
+export class TicketForm implements OnInit {
 
   formData: CreateTicketRequest = {
     title: '',
@@ -30,17 +31,30 @@ export class TicketForm {
 
   constructor(
     private ticketService: TicketService,
+    private authService: AuthService,
     private router: Router
   ) {}
+
+  ngOnInit(): void {
+
+    const currentUser =
+      this.authService.getCurrentUser();
+
+    if (currentUser) {
+      this.formData.createdBy =
+        currentUser.email;
+    }
+  }
 
   onSubmit(): void {
 
     if (
       !this.formData.title.trim() ||
-      !this.formData.description.trim() ||
-      !this.formData.createdBy.trim()
+      !this.formData.description.trim()
     ) {
-      this.errorMessage.set('All fields are required.');
+      this.errorMessage.set(
+        'Title and description are required.'
+      );
       return;
     }
 
@@ -51,7 +65,7 @@ export class TicketForm {
     const request: CreateTicketRequest = {
       title: this.formData.title.trim(),
       description: this.formData.description.trim(),
-      createdBy: this.formData.createdBy.trim()
+      createdBy: this.formData.createdBy
     };
 
     this.ticketService.create(request).subscribe({
@@ -64,7 +78,6 @@ export class TicketForm {
           `Ticket ${createdTicket.incidentId} created successfully.`
         );
 
-        // Go directly to the new incident after creation
         setTimeout(() => {
           this.router.navigate([
             '/tickets',
@@ -75,7 +88,10 @@ export class TicketForm {
 
       error: (err) => {
 
-        console.error('Ticket creation failed:', err);
+        console.error(
+          'Ticket creation failed:',
+          err
+        );
 
         this.isSubmitting.set(false);
 
@@ -86,11 +102,9 @@ export class TicketForm {
     });
   }
 
-
   goToDashboard(): void {
     this.router.navigate(['/']);
   }
-
 
   cancel(): void {
     this.router.navigate(['/']);

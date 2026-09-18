@@ -23,6 +23,7 @@ import {
 
 import { TicketOptions } from '../../models/ticket-options';
 import { OptionsService } from '../../services/options-service';
+import { AuthService } from '../../services/auth-service';
 
 @Component({
   selector: 'app-ticket-detail',
@@ -114,8 +115,10 @@ export class TicketDetail implements OnInit {
 
   commentError = signal('');
 
+  currentUserId = '';
+
+
   newComment: CreateCommentRequest = {
-    author: '',
     text: ''
   };
 
@@ -160,7 +163,8 @@ export class TicketDetail implements OnInit {
     private router: Router,
     private ticketService: TicketService,
     private commentService: CommentService,
-    private optionsService: OptionsService
+    private optionsService: OptionsService,
+    private authService: AuthService
   ) {}
 
 
@@ -170,8 +174,13 @@ export class TicketDetail implements OnInit {
 
   ngOnInit(): void {
 
-    const incidentId =
-      this.route.snapshot.paramMap.get('incidentId');
+    const currentUser = this.authService.getCurrentUser();
+
+    if (currentUser) {
+      this.currentUserId = currentUser.userId;
+    } 
+
+    const incidentId = this.route.snapshot.paramMap.get('incidentId');
 
     if (!incidentId) {
 
@@ -222,7 +231,10 @@ export class TicketDetail implements OnInit {
 
     this.loadComments();
   }
-
+  
+  isCommentOwner(comment: TicketComment): boolean {
+    return comment.createdByUserId === this.currentUserId;
+  }
 
   // =====================================================
   // BACK TO DASHBOARD
@@ -997,17 +1009,15 @@ export class TicketDetail implements OnInit {
 
   postComment(): void {
 
-    const author =
-      this.newComment.author?.trim();
 
     const text =
       this.newComment.text?.trim();
 
 
-    if (!author || !text) {
+    if ( !text) {
 
       this.commentError.set(
-        'Author and comment text are required.'
+        'Comment text are required.'
       );
 
       return;
@@ -1020,8 +1030,6 @@ export class TicketDetail implements OnInit {
 
 
     const request: CreateCommentRequest = {
-
-      author,
 
       text
 
@@ -1054,7 +1062,6 @@ export class TicketDetail implements OnInit {
            */
           this.newComment = {
 
-            author: '',
 
             text: ''
 

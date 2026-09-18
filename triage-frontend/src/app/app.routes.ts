@@ -4,8 +4,8 @@ import { TicketForm } from './components/ticket-form/ticket-form';
 import { TicketDetail } from './components/ticket-detail/ticket-detail';
 import { TicketDashboard } from './components/ticket-dashboard/ticket-dashboard';
 import { authGuard } from './guards/auth.guard';
-import { Login } from './components/login/login';
-import { Register } from './components/register/register';
+import { Login } from './components/auth/login/login';
+import { Register } from './components/auth/register/register';
 
 export const routes: Routes = [
   { path: 'login',component: Login},

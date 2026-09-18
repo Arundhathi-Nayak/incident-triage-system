@@ -163,7 +163,18 @@
 .field label span {
   color: #d92d20;
 }
+#submitter[readonly] {
+  background: #cbd5e1;
+  color: #0f3c3d;
+  border-color: #94a3b8;
+  cursor: not-allowed;
+}
 
+#submitter[readonly]:focus {
+  outline: none;
+  border-color: #5c9a9c;
+  box-shadow: none;
+}
 
 /* =========================================================
    LABEL ROW

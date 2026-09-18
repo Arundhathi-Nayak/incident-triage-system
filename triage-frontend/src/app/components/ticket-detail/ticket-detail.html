@@ -829,7 +829,7 @@
                   <!-- EDIT -->
 
                   <button
-                    *ngIf="editingCommentId() !== c.id"
+                    *ngIf="editingCommentId() !== c.id && isCommentOwner(c)"  
                     type="button"
                     class="comment-action edit-comment-action"
                     (click)="startEditingComment(c)">
@@ -842,7 +842,7 @@
                   <!-- DELETE -->
 
                   <button
-                    *ngIf="editingCommentId() !== c.id"
+                    *ngIf="editingCommentId() !== c.id && isCommentOwner(c)"
                     type="button"
                     class="comment-action delete-comment-action"
                     (click)="deleteComment(c)"
@@ -892,7 +892,7 @@
 
               <div
                 *ngIf="
-                  editingCommentId() === c.id
+                  editingCommentId() === c.id 
                 "
                 class="comment-edit-area">
 
@@ -1002,25 +1002,6 @@
           <form
             (ngSubmit)="postComment()"
             class="comment-form">
-
-
-            <!-- AUTHOR -->
-
-            <div class="field">
-
-              <label for="author">
-                Your name
-              </label>
-
-              <input
-                id="author"
-                type="text"
-                [(ngModel)]="newComment.author"
-                name="author"
-                placeholder="Enter your name"
-                required />
-
-            </div>
 
 
             <!-- COMMENT -->

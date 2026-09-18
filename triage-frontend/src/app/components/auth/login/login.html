@@ -1,0 +1,120 @@
+<div class="login-page">
+
+  <div class="login-container">
+
+    <!-- Login Card -->
+    <div class="login-card">
+
+      <div class="login-header">
+
+        <h1>Welcome back</h1>
+
+        <p>
+          Sign in to your incident management account.
+        </p>
+
+      </div>
+
+
+      <form (ngSubmit)="login()">
+
+        <!-- Email -->
+        <div class="form-group">
+
+          <label for="email">
+            Email
+          </label>
+
+          <input
+            id="email"
+            type="email"
+            name="email"
+            [(ngModel)]="loginRequest.email"
+            placeholder="Enter your email"
+            autocomplete="email"
+          />
+
+        </div>
+
+
+        <!-- Password -->
+        <div class="form-group">
+
+          <label for="password">
+            Password
+          </label>
+
+          <input
+            id="password"
+            type="password"
+            name="password"
+            [(ngModel)]="loginRequest.password"
+            placeholder="Enter your password"
+            autocomplete="current-password"
+          />
+
+        </div>
+
+
+        <!-- Error -->
+        <div
+          *ngIf="errorMessage"
+          class="error-message">
+
+          <span class="error-icon">!</span>
+
+          <span>
+            {{ errorMessage }}
+          </span>
+
+        </div>
+
+
+        <!-- Login -->
+        <button
+          type="submit"
+          class="login-button"
+          [disabled]="isLoading">
+
+          <span *ngIf="!isLoading">
+            Sign in
+          </span>
+
+          <span
+            *ngIf="isLoading"
+            class="loading-content">
+
+            <span class="spinner"></span>
+
+            Signing in...
+
+          </span>
+
+        </button>
+
+      </form>
+
+
+      <!-- Register -->
+      <div class="register-section">
+
+        <span>
+          Don't have an account?
+        </span>
+
+        <button
+          type="button"
+          class="register-link"
+          (click)="goToRegister()">
+
+          Create account
+
+        </button>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</div>

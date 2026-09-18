@@ -2,13 +2,13 @@ export interface TicketComment {
   id: number;
   incidentId: string;
   author: string;
+  createdByUserId: string;
   text: string;
   createdAt: string;
   updatedAt?: string | null;
 }
 
 export interface CreateCommentRequest {
-  author: string;
   text: string;
 }
 

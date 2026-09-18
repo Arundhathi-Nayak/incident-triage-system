@@ -105,33 +105,24 @@
       </div>
 
 
-      <div class="field">
+     <div class="field">
 
-        <label for="submitter">
-          Your email
-          <span>*</span>
-        </label>
+      <label for="submitter">
+        Your email
+      </label>
 
-        <input
-          id="submitter"
-          type="email"
-          [(ngModel)]="formData.createdBy"
-          name="submitter"
-          placeholder="you@company.com"
-          required
-          email
-          #submitter="ngModel" />
+      <input
+        id="submitter"
+        type="email"
+        [(ngModel)]="formData.createdBy"
+        name="submitter"
+        readonly />
 
-        <small
-          *ngIf="submitter.invalid && submitter.touched"
-          class="field-error">
+      <small class="field-hint">
+        This email is associated with your logged-in account.
+      </small>
 
-          Please enter a valid email address.
-
-        </small>
-
-      </div>
-
+    </div>
 
       <!-- AI NOTE -->
 

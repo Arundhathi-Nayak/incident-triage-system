@@ -1,8 +1,8 @@
 import { CommonModule } from '@angular/common';
-import { Component } from '@angular/core';
+import { ChangeDetectorRef, Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RegisterRequest } from '../../models/auth.models';
-import { AuthService } from '../../services/auth-service';
+import { RegisterRequest } from '../../../models/auth.models';
+import { AuthService } from '../../../services/auth-service';
 import { Router } from '@angular/router';
 
 @Component({
@@ -30,7 +30,8 @@ export class Register {
 
   constructor(
     private authService: AuthService,
-    private router: Router
+    private router: Router,
+    private cdr: ChangeDetectorRef
   ) {}
 
   register(): void {
@@ -91,6 +92,8 @@ export class Register {
             this.errorMessage =
               'Unable to connect to the server.';
           }
+            
+        this.cdr.detectChanges();
         }
       });
   }

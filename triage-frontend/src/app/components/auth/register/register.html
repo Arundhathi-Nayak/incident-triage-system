@@ -1,0 +1,158 @@
+<div class="register-page">
+
+  <div class="register-container">
+
+    <!-- Register Card -->
+    <div class="register-card">
+
+      <div class="register-header">
+
+        <h1>Create account</h1>
+
+        <p>
+          Create your incident management account.
+        </p>
+
+      </div>
+
+
+      <form (ngSubmit)="register()">
+
+        <!-- Display Name -->
+        <div class="form-group">
+
+          <label for="displayName">
+            Display name
+          </label>
+
+          <input
+            id="displayName"
+            type="text"
+            name="displayName"
+            [(ngModel)]="registerRequest.displayName"
+            placeholder="Enter your name"
+            autocomplete="name"
+          />
+
+        </div>
+
+
+        <!-- Email -->
+        <div class="form-group">
+
+          <label for="email">
+            Email
+          </label>
+
+          <input
+            id="email"
+            type="email"
+            name="email"
+            [(ngModel)]="registerRequest.email"
+            placeholder="Enter your email"
+            autocomplete="email"
+          />
+
+        </div>
+
+
+        <!-- Password -->
+        <div class="form-group">
+
+          <label for="password">
+            Password
+          </label>
+
+          <input
+            id="password"
+            type="password"
+            name="password"
+            [(ngModel)]="registerRequest.password"
+            placeholder="Enter your password"
+            autocomplete="new-password"
+          />
+
+        </div>
+
+
+        <!-- Confirm Password -->
+        <div class="form-group">
+
+          <label for="confirmPassword">
+            Confirm password
+          </label>
+
+          <input
+            id="confirmPassword"
+            type="password"
+            name="confirmPassword"
+            [(ngModel)]="confirmPassword"
+            placeholder="Confirm your password"
+            autocomplete="new-password"
+          />
+
+        </div>
+
+
+        <!-- Error -->
+        <div
+          *ngIf="errorMessage"
+          class="error-message">
+
+          <span class="error-icon">!</span>
+
+          <span>
+            {{ errorMessage }}
+          </span>
+
+        </div>
+
+
+        <!-- Register Button -->
+        <button
+          type="submit"
+          class="register-button"
+          [disabled]="isLoading">
+
+          <span *ngIf="!isLoading">
+            Create account
+          </span>
+
+          <span
+            *ngIf="isLoading"
+            class="loading-content">
+
+            <span class="spinner"></span>
+
+            Creating account...
+
+          </span>
+
+        </button>
+
+      </form>
+
+
+      <!-- Login -->
+      <div class="login-section">
+
+        <span>
+          Already have an account?
+        </span>
+
+        <button
+          type="button"
+          class="login-link"
+          (click)="goToLogin()">
+
+          Sign in
+
+        </button>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</div>

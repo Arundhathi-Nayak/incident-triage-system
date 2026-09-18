@@ -198,7 +198,7 @@ public class CommentsController : ControllerBase
         }
         catch (UnauthorizedAccessException)
         {
-            return Unauthorized();
+            return Forbid();
         }
     }
 
@@ -213,16 +213,15 @@ public class CommentsController : ControllerBase
         int commentId)
     {
         var userId =
-        User.FindFirstValue(ClaimTypes.NameIdentifier);
+            User.FindFirstValue(
+                ClaimTypes.NameIdentifier);
 
         if (string.IsNullOrWhiteSpace(userId))
             return Unauthorized();
 
         var ticketExists =
             await _commentService
-                .TicketExistsAsync(
-                    incidentId);
-
+                .TicketExistsAsync(incidentId);
 
         if (!ticketExists)
         {
@@ -230,21 +229,26 @@ public class CommentsController : ControllerBase
                 $"Ticket {incidentId} not found.");
         }
 
-
-        var deleted =
-            await _commentService
-                .DeleteAsync(
-                    incidentId,
-                    commentId, userId);
-
-
-        if (!deleted)
+        try
         {
-            return NotFound(
-                $"Comment {commentId} not found.");
+            var deleted =
+                await _commentService
+                    .DeleteAsync(
+                        incidentId,
+                        commentId,
+                        userId);
+
+            if (!deleted)
+            {
+                return NotFound(
+                    $"Comment {commentId} not found.");
+            }
+
+            return NoContent();
         }
-
-
-        return NoContent();
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
     }
 }
